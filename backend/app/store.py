@@ -6,7 +6,7 @@ from .config import get_settings
 from .db import get_db
 from .pricing import Rules
 
-NUMBER_FIELDS = {"free_shipping_above": (0, 1_000_000), "shipping_fee": (0, 10_000), "cod_fee": (0, 10_000),
+NUMBER_FIELDS = {"low_stock": (0, 50), "free_shipping_above": (0, 1_000_000), "shipping_fee": (0, 10_000), "cod_fee": (0, 10_000),
                  "cod_max_order": (0, 10_000_000), "dispatch_days": (0, 14)}
 TEXT_FIELDS = {"shop_pin": 6, "whatsapp": 13, "phone": 20, "email": 120, "address": 300, "hours": 120,
                "instagram": 200, "facebook": 200, "announcement": 140}
@@ -16,7 +16,7 @@ _cache: dict = {"at": 0.0, "data": {}}
 def defaults() -> dict:
     s = get_settings()
     return {"free_shipping_above": s.free_shipping_above, "shipping_fee": s.shipping_fee, "cod_fee": s.cod_fee,
-            "cod_max_order": s.cod_max_order, "dispatch_days": s.dispatch_days, "shop_pin": s.shop_pin,
+            "cod_max_order": s.cod_max_order, "dispatch_days": s.dispatch_days, "low_stock": 2, "shop_pin": s.shop_pin,
             # Public contact details start empty. SHOP_EMAIL / SHOP_WHATSAPP env values are only used for order alerts.
             "whatsapp": "", "phone": "", "email": "", "address": "", "hours": "",
             "instagram": "", "facebook": "", "announcement": "", "banners": [], "hero": {}, "slide_seconds": 2}

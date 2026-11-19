@@ -3,12 +3,14 @@ import { Link } from 'react-router-dom'
 import { useAuthedApi } from '../../context/AuthContext.jsx'
 import { rupees } from '../../lib/config.js'
 import Charts from './Charts.jsx'
+import LowStock from './LowStock.jsx'
 
 export default function Dashboard() {
   const call = useAuthedApi()
   const [s, setS] = useState(null)
   const [error, setError] = useState('')
-  useEffect(() => { call('/api/admin/stats').then(setS).catch((e) => setError(e.message)) }, [call])
+  const load = () => call('/api/admin/stats').then(setS).catch((e) => setError(e.message))
+  useEffect(() => { load() }, [call]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (error) return <p className="alert alert-error">{error}</p>
   if (!s) return <div className="skeleton-block" />
@@ -34,20 +36,9 @@ export default function Dashboard() {
           </Link>
         ))}
       </div>
+      <p className="small muted stat-note">“Today” is counted in Indian time. Cancelled and unpaid orders are not counted.</p>
       <Charts />
-      <h2 className="admin-h2">Low stock (2 or fewer)</h2>
-      {s.low_stock.length ? (
-        <ul className="low-list">
-          {s.low_stock.map((v, i) => (
-            <li key={i}>
-              <Link to={`/admin/products/${v.product_id}`}>{v.name}</Link>
-              <span className="muted"> {[v.color, v.size].filter(Boolean).join(' / ')}</span>
-              <span className={`pill ${v.stock === 0 ? 'pill-red' : 'pill-amber'}`}>{v.stock === 0 ? 'Sold out' : `${v.stock} left`}</span>
-            </li>
-          ))}
-        </ul>
-      ) : <p className="muted">All stocked up.</p>}
-      <p className="small muted">“Today” is counted in Indian time. Cancelled and unpaid orders are not counted.</p>
+      <LowStock items={s.low_stock} threshold={s.low_stock_threshold ?? 2} onChange={load} />
     </>
   )
 }

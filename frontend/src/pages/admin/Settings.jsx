@@ -8,6 +8,7 @@ const SECTIONS = [
     ['free_shipping_above', 'Free shipping from (₹, after coupon)', 'num'], ['shipping_fee', 'Shipping fee below that (₹)', 'num'],
     ['cod_fee', 'COD handling fee (₹)', 'num'], ['cod_max_order', 'Largest COD order (₹)', 'num'],
     ['shop_pin', 'Shop PIN code (for delivery dates)', 'pin'], ['dispatch_days', 'Days to pack before courier pickup', 'num'],
+    ['low_stock', 'Warn me when stock is at or below (pieces)', 'num'],
   ] },
   { title: 'Shop contact details', note: 'Shown in the footer (Reach us), Contact page, packing slips and every WhatsApp button. Blank fields are hidden.', fields: [
     ['whatsapp', 'WhatsApp number (10 digits)', 'tel'], ['phone', 'Phone (as shown to customers)', 'text'],

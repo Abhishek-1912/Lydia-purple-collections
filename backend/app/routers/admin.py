@@ -65,6 +65,11 @@ def store_image(product_id: str, data: bytes, color: str | None) -> dict:
 
 
 # ───────────── stats ─────────────
+def _variant_image(images: list[dict], color: str) -> str | None:
+    """Best photo for a colour: one tagged with that colour, else the product's main photo."""
+    imgs = sorted(images, key=lambda i: (i["color"] not in (None, color), i["color"] is None, i["sort_order"]))
+    return imgs[0]["url"] if imgs else None
+
 @router.get("/stats")
 def stats():
     db = get_db()
@@ -72,16 +77,22 @@ def stats():
     today = db.table("orders").select("total,status").gte("created_at", start).execute().data
     live = [o for o in today if o["status"] not in ("cancelled", "pending_payment")]
     count = lambda **f: len(db.table("orders").select("id").match(f).execute().data)  # noqa: E731
-    low = (db.table("product_variants").select("id,color,size,stock,products(id,name,is_active)")
-           .lte("stock", 2).order("stock").execute().data)
+    from .. import store
+    threshold = int(store.current().get("low_stock") or 2)
+    low = (db.table("product_variants")
+           .select("id,color,color_hex,color_hex2,size,sku,stock,products(id,name,slug,is_active,product_images(url,color,sort_order))")
+           .lte("stock", threshold).order("stock").execute().data)
     return {
         "orders_today": len(live),
         "sales_today": sum(o["total"] for o in live),
         "to_pack": count(status="confirmed"),
         "to_ship": count(status="packed"),
         "needs_review": count(needs_review=True),
-        "low_stock": [{"product_id": v["products"]["id"], "name": v["products"]["name"], "color": v["color"],
-                       "size": v["size"], "stock": v["stock"]}
+        "low_stock_threshold": threshold,
+        "low_stock": [{"variant_id": v["id"], "product_id": v["products"]["id"], "name": v["products"]["name"],
+                       "slug": v["products"]["slug"], "color": v["color"], "color_hex": v["color_hex"],
+                       "color_hex2": v.get("color_hex2"), "size": v["size"], "sku": v["sku"], "stock": v["stock"],
+                       "image": _variant_image(v["products"].get("product_images") or [], v["color"])}
                       for v in low if v.get("products") and v["products"]["is_active"]],
     }
 
