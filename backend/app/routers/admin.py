@@ -514,6 +514,18 @@ def get_store_settings():
 def put_store_settings(body: dict):
     from .. import store
     clean = {}
+    if "banners" in body:
+        base = f"{get_settings().supabase_url}/storage/v1/object/public/{BUCKET}/banners/"
+        out = []
+        for b in (body.get("banners") or [])[:8]:
+            url, link = str(b.get("url", "")), str(b.get("link") or "/shop")
+            if not url.startswith(base):
+                raise HTTPException(400, "Banner photo must be uploaded from this admin page.")
+            if not re.fullmatch(r"/[A-Za-z0-9/_?=&#-]*", link):
+                raise HTTPException(400, "Banner link must be a page of this shop, e.g. /bridal")
+            out.append({"url": url, "link": link, "alt": str(b.get("alt") or "")[:120],
+                        "w": int(b.get("w") or 0), "h": int(b.get("h") or 0)})
+        clean["banners"] = out
     for k, v in body.items():
         if k in store.NUMBER_FIELDS:
             lo, hi = store.NUMBER_FIELDS[k]
@@ -545,6 +557,20 @@ def put_store_settings(body: dict):
         if "store_settings" in str(e):
             raise HTTPException(500, "Settings table missing — run supabase/migrations/003_store_settings.sql.")
         raise
+
+
+@router.post("/banners")
+async def upload_banner(file: UploadFile = File(...)):
+    """Home page banner photo (wide, e.g. 1920×850). Stored under banners/; added to the list when settings are saved."""
+    data = await file.read(MAX_IMAGE + 1)
+    if len(data) > MAX_IMAGE:
+        raise HTTPException(400, "Banner is larger than 5 MB.")
+    kind = image_kind(data)
+    if not kind:
+        raise HTTPException(400, "Only JPG, PNG or WebP photos are allowed.")
+    path = f"banners/{uuid.uuid4().hex}.{kind}"
+    get_db().storage.from_(BUCKET).upload(path, data, {"content-type": f"image/{'jpeg' if kind == 'jpg' else kind}"})
+    return {"url": f"{get_settings().supabase_url}/storage/v1/object/public/{BUCKET}/{path}"}
 
 
 # ───────────── categories ─────────────

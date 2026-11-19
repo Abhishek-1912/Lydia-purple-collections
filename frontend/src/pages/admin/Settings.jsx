@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAuthedApi } from '../../context/AuthContext.jsx'
+import BannersEditor from './BannersEditor.jsx'
 
 const SECTIONS = [
   { title: 'Shipping & Cash on Delivery', note: 'Changes apply to new carts and orders straight away.', fields: [
@@ -71,6 +72,7 @@ export default function Settings() {
           </div>
         </fieldset>
       ))}
+      <BannersEditor banners={f.banners || []} onChange={(banners) => setF({ ...f, banners })} />
       {msg.text && <p className={`alert ${msg.type === 'ok' ? 'alert-ok' : 'alert-error'}`} role="status">{msg.text}</p>}
       <div className="sticky-save"><button className="btn btn-primary" disabled={busy}>{busy ? 'Saving…' : 'Save settings'}</button></div>
     </form>

@@ -19,7 +19,7 @@ def defaults() -> dict:
             "cod_max_order": s.cod_max_order, "dispatch_days": s.dispatch_days, "shop_pin": s.shop_pin,
             # Public contact details start empty. SHOP_EMAIL / SHOP_WHATSAPP env values are only used for order alerts.
             "whatsapp": "", "phone": "", "email": "", "address": "", "hours": "",
-            "instagram": "", "announcement": ""}
+            "instagram": "", "announcement": "", "banners": []}
 
 
 def overrides(fresh: bool = False) -> dict:

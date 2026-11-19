@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { WhatsAppIcon } from '../components/Icons.jsx'
+import HeroSlider from '../components/HeroSlider.jsx'
 import { api } from '../lib/api.js'
 import { ProductGrid } from '../components/ProductCard.jsx'
 import { whatsappLink } from '../lib/config.js'
@@ -30,6 +31,7 @@ export default function Home() {
 
   return (
     <>
+      <HeroSlider>
       <section className="hero">
         <img className="hero-mandala" src="/mandala.webp" alt="" width="460" height="460" decoding="async" fetchpriority="low" />
         <div className="container hero-inner">
@@ -42,6 +44,7 @@ export default function Home() {
           </div>
         </div>
       </section>
+      </HeroSlider>
 
       <ul className="trust container" aria-label="Why shop with us">
         {TRUST.map((x) => (
