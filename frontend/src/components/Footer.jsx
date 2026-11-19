@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { ClockIcon, FacebookIcon, InstagramIcon, Lotus, MailIcon, PhoneIcon, PinIcon, WhatsAppIcon } from './Icons.jsx'
+import { ClockIcon, FacebookIcon, InstagramIcon, MailIcon, PhoneIcon, PinIcon, WhatsAppIcon } from './Icons.jsx'
 import { config, whatsappLink, SHOP_NAME } from '../lib/config.js'
 
 export default function Footer() {
@@ -7,7 +7,7 @@ export default function Footer() {
     <footer className="site-footer">
       <div className="container footer-grid">
         <div>
-          <div className="footer-logo"><Lotus size={28} /> {SHOP_NAME}</div>
+          <Link to="/" className="footer-logo" aria-label={`${SHOP_NAME} home`}><img src="/logo-full.webp" alt={SHOP_NAME} width="240" height="139" loading="lazy" decoding="async" /></Link>
           <p className="muted-light">Handpicked silk sarees and ethnic wear, quality checked and shipped across India.</p>
         </div>
         <div>

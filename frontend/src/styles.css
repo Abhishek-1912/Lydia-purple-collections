@@ -98,7 +98,7 @@ main { min-height: 100vh; }  /* keeps the footer below the fold while content lo
 .header-bar { display: grid; grid-template-columns: 44px 1fr auto; align-items: center; gap: 8px; height: 64px; }
 .logo { display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--gold); text-decoration: none; }
 /* Wider screens: the words sit at the exact centre; the lotus hangs to their left */
-@media (min-width: 900px) { .logo { position: relative; gap: 0; } .logo > svg { position: absolute; right: calc(100% + 8px); top: 50%; transform: translateY(-50%); } }
+@media (min-width: 900px) { .logo { position: relative; gap: 0; } .logo > .logo-mark { position: absolute; right: calc(100% + 10px); top: 50%; transform: translateY(-50%); } }
 .logo-text { display: flex; flex-direction: column; line-height: 1; }
 .logo-main { font: 700 1.15rem var(--f-head); color: var(--purple); letter-spacing: .06em; }
 .logo-sub { font: italic 600 .95rem var(--f-display); color: var(--gold-text); letter-spacing: .12em; }
@@ -825,3 +825,8 @@ body, .display { font-variant-numeric: lining-nums; }
 
 .ls-head .link-btn { white-space: nowrap; }
 @media (max-width: 599px) { .ls-head { flex-direction: column; gap: 0; } }
+
+/* Brand mark (LPC monogram medallion) and footer logo */
+.logo-mark { width: 40px; height: 40px; border-radius: 50%; flex: none; box-shadow: 0 2px 6px rgba(46, 11, 61, .25); }
+@media (min-width: 900px) { .logo-mark { width: 50px; height: 50px; } }
+.footer-logo img { width: 220px; height: auto; border-radius: 10px; display: block; }

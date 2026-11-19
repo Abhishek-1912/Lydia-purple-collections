@@ -20,7 +20,7 @@ export default async function handler(req, res) {
     ? [p.discount_pct ? `${p.discount_pct}% off (MRP ${inr(p.mrp)})` : '', p.details?.composition || p.fabric, p.in_stock ? 'In stock · UPI & Cash on Delivery' : 'Sold out — ask us on WhatsApp']
         .filter(Boolean).join(' · ')
     : 'Silk sarees and ethnic wear. UPI & Cash on Delivery across India.'
-  const img = p?.images?.[0]?.url || `${site}/og-default.png`
+  const img = p?.images?.[0]?.url || `${site}/og-default.jpg`
 
   res.setHeader('Content-Type', 'text/html; charset=utf-8')
   res.setHeader('Cache-Control', 'public, s-maxage=600, stale-while-revalidate=86400')

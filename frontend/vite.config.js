@@ -6,7 +6,7 @@ import react from '@vitejs/plugin-react'
 const site = process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : ''
 const absoluteShareImage = {
   name: 'absolute-share-image',
-  transformIndexHtml: (html) => html.replace('content="/og-default.png"', `content="${site}/og-default.png"`),
+  transformIndexHtml: (html) => html.replace('content="/og-default.jpg"', `content="${site}/og-default.jpg"`),
 }
 
 export default defineConfig({ plugins: [react(), absoluteShareImage], server: { port: 5173 } })

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
-import { Lotus, BagIcon, UserIcon, MenuIcon } from './Icons.jsx'
+import { BagIcon, UserIcon, MenuIcon } from './Icons.jsx'
 import { SHOP_NAME } from '../lib/config.js'
 import { useCart } from '../context/CartContext.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
@@ -42,7 +42,7 @@ export default function Header() {
           <MenuIcon open={open} />
         </button>
         <Link to="/" className="logo">
-          <Lotus size={34} />
+          <img className="logo-mark" src="/logo-mark.webp" alt="" width="48" height="48" decoding="async" />
           <span className="logo-text">
             <span className="logo-main">Lydia Purple</span>{' '}
             <span className="logo-sub">Collections</span>
