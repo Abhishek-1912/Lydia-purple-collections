@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Mandala, WhatsAppIcon } from '../components/Icons.jsx'
+import { WhatsAppIcon } from '../components/Icons.jsx'
 import { api } from '../lib/api.js'
 import { ProductGrid } from '../components/ProductCard.jsx'
 import { whatsappLink } from '../lib/config.js'
@@ -31,7 +31,7 @@ export default function Home() {
   return (
     <>
       <section className="hero">
-        <Mandala className="hero-mandala" />
+        <img className="hero-mandala" src="/mandala.webp" alt="" width="460" height="460" decoding="async" fetchpriority="low" />
         <div className="container hero-inner">
           <p className="eyebrow">Handpicked silks · Shipped across India</p>
           <h1>Draped in tradition,<br />woven for you</h1>

@@ -8,7 +8,8 @@
   --ivory-2: #F3EAD7;
   --ink: #2A1F2D;
   --muted: #6E6372;
-  --wa: #1F9D55;
+  --wa: #137A3F;          /* WhatsApp green darkened for 4.5:1 contrast with white text */
+  --gold-text: #8A6A0C;    /* gold for text on ivory (4.5:1) */
   --danger: #B3261E;
   --ok: #2E7D32;
   --radius: 10px;
@@ -43,6 +44,7 @@ p { margin: 0 0 1em; }
 .skip-link { position: absolute; left: -999px; top: 8px; background: var(--plum); color: #fff; padding: 8px 14px; z-index: 100; }
 .skip-link:focus { left: 8px; }
 main:focus { outline: none; }
+main { min-height: 100vh; }  /* keeps the footer below the fold while content loads (no layout shift) */
 
 .container { width: 100%; max-width: 1180px; margin: 0 auto; padding: 0 16px; }
 .page-narrow { max-width: 640px; padding-top: 48px; padding-bottom: 64px; }
@@ -92,12 +94,12 @@ main:focus { outline: none; }
 
 /* header */
 .site-header { position: sticky; top: 0; z-index: 50; background: var(--ivory); box-shadow: 0 1px 0 var(--gold-soft); }
-.announce { background: var(--plum); color: var(--gold-soft); text-align: center; font-size: .78rem; padding: 6px 12px; letter-spacing: .03em; }
+.announce { background: var(--plum); color: var(--gold-soft); text-align: center; font-size: .72rem; padding: 6px 12px; letter-spacing: .02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; height: 28px; line-height: 16px; }
 .header-bar { display: grid; grid-template-columns: 44px 1fr auto; align-items: center; gap: 8px; height: 64px; }
 .logo { display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--gold); text-decoration: none; }
 .logo-text { display: flex; flex-direction: column; line-height: 1; }
 .logo-main { font: 700 1.15rem var(--f-head); color: var(--purple); letter-spacing: .06em; }
-.logo-sub { font: italic 600 .95rem var(--f-display); color: var(--gold); letter-spacing: .12em; }
+.logo-sub { font: italic 600 .95rem var(--f-display); color: var(--gold-text); letter-spacing: .12em; }
 .header-actions { display: flex; }
 .main-nav { display: none; border-top: 1px solid var(--gold-soft); background: var(--ivory); }
 .main-nav.open { display: block; }
@@ -122,7 +124,7 @@ main:focus { outline: none; }
   background: radial-gradient(ellipse at 70% 30%, var(--purple) 0%, var(--plum) 70%);
   padding: 56px 0 64px;
 }
-.hero-mandala { position: absolute; right: -90px; top: 50%; width: 360px; transform: translateY(-50%); color: var(--gold); opacity: .35; }
+.hero-mandala { position: absolute; right: -90px; top: 50%; width: 360px; height: auto; transform: translateY(-50%); opacity: .35; pointer-events: none; }
 .hero-inner { position: relative; }
 .hero h1 { color: var(--ivory); max-width: 14ch; }
 .hero-sub { color: var(--gold-soft); max-width: 36ch; }
@@ -132,10 +134,7 @@ main:focus { outline: none; }
   .hero { padding: 96px 0 104px; }
   .hero-mandala { right: 4%; width: 460px; opacity: .55; }
 }
-@media (prefers-reduced-motion: no-preference) {
-  .hero-mandala { animation: spin 120s linear infinite; }
-  @keyframes spin { to { transform: translateY(-50%) rotate(360deg); } }
-}
+/* Mandala is static: a spinning SVG repaints every frame and blocks the main thread on phones. */
 
 /* trust strip */
 .trust { list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding-top: 20px; padding-bottom: 20px; margin: 0 auto; }
@@ -203,9 +202,10 @@ main:focus { outline: none; }
 .alert { padding: 10px 14px; border-radius: 8px; margin: 12px 0; font-size: .9rem; }
 .alert-error { background: #FDECEA; color: var(--danger); border: 1px solid #F5C2BE; }
 .alert-ok { background: #E8F5E9; color: var(--ok); border: 1px solid #B9DFBB; }
-.skeleton { min-height: 320px; background: linear-gradient(90deg, var(--ivory-2), #fff, var(--ivory-2)); background-size: 200% 100%; }
+.skeleton { min-height: 320px; background: var(--ivory-2); }
 .skeleton-block { min-height: 420px; border-radius: var(--radius); background: var(--ivory-2); }
-@media (prefers-reduced-motion: no-preference) { .skeleton { animation: shimmer 1.4s infinite; } @keyframes shimmer { to { background-position: -200% 0; } } }
+/* Opacity pulse runs on the compositor (background-position would repaint every frame). */
+@media (prefers-reduced-motion: no-preference) { .skeleton, .skeleton-block { animation: pulse 1.6s ease-in-out infinite; } @keyframes pulse { 50% { opacity: .55; } } }
 input, select, textarea { font: inherit; color: var(--ink); }
 input[type=search], input[type=text], input[type=email], input[type=tel], select, textarea {
   min-height: 44px; padding: 8px 12px; border: 1px solid #D8CBB0; border-radius: 8px; background: #fff; width: 100%;

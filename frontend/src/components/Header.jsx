@@ -24,16 +24,16 @@ export default function Header() {
 
   return (
     <header className="site-header">
-      <div className="announce">Free shipping above ₹1,999 · UPI & Cash on Delivery · Order on WhatsApp</div>
+      <div className="announce">Free shipping above ₹1,999 · UPI & COD · WhatsApp orders</div>
       <div className="header-bar container">
         <button className="icon-btn menu-btn" aria-label={open ? 'Close menu' : 'Open menu'}
           aria-expanded={open} aria-controls="main-nav" onClick={() => setOpen(!open)}>
           <MenuIcon open={open} />
         </button>
-        <Link to="/" className="logo" aria-label={`${SHOP_NAME} home`}>
+        <Link to="/" className="logo">
           <Lotus size={34} />
           <span className="logo-text">
-            <span className="logo-main">Lydia Purple</span>
+            <span className="logo-main">Lydia Purple</span>{' '}
             <span className="logo-sub">Collections</span>
           </span>
         </Link>
