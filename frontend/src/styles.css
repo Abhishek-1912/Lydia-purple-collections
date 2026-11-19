@@ -928,3 +928,4 @@ body, .display { font-variant-numeric: lining-nums; }
 .an-table { width: 100%; border-collapse: collapse; font-size: .88rem; }
 .an-table th, .an-table td { text-align: left; padding: 8px 6px; border-bottom: 1px solid #EFE4CC; }
 .an-table th { color: var(--muted); font-weight: 600; font-size: .8rem; }
+.optin { margin: 0 0 14px; font-size: .88rem; align-items: flex-start; } .optin input { margin-top: 3px; }

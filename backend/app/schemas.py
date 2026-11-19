@@ -51,6 +51,7 @@ class OrderIn(BaseModel):
     payment_method: Literal["razorpay", "cod"]
     session_id: str | None = Field(default=None, max_length=64)   # links the abandoned-checkout draft
     gift_code: str | None = Field(default=None, max_length=40)
+    whatsapp_opt_in: bool = False                                 # "Send me new arrivals on WhatsApp"
 
 
 class VerifyIn(BaseModel):

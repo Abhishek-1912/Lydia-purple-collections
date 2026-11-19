@@ -120,6 +120,11 @@ def create_order(body: OrderIn, request: Request, background: BackgroundTasks, u
     mark_converted(body.session_id, order_id)
     from .analytics import record_order
     record_order(body.session_id)
+    if body.whatsapp_opt_in:
+        try:
+            get_db().table("orders").update({"whatsapp_opt_in": True}).eq("id", order_id).execute()
+        except Exception:
+            pass  # migration 006 not run yet
     result = {"id": order_id, "order_no": order_no, "payment_method": method, "total": q["total"], "due": q["due"]}
 
     if method in ("cod", "gift"):

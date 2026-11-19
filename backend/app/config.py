@@ -34,6 +34,11 @@ class Settings(BaseSettings):
     whatsapp_template_shipped: str = ""
     whatsapp_template_cart: str = ""      # abandoned-cart reminder template (off when blank)
     site_url: str = ""                    # e.g. https://lydiapurple.in — used in reminder links
+
+    shiprocket_email: str = ""            # Shiprocket API user (blank = courier booking off)
+    shiprocket_password: str = ""
+    shiprocket_pickup: str = ""           # pickup location name exactly as in Shiprocket
+    shiprocket_weight_kg: float = 0.6
     shop_whatsapp: str = ""
 
     @property

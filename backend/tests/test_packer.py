@@ -35,3 +35,12 @@ def test_customer_refused_admin_allowed(monkeypatch):
         auth.admin_gate(req("GET", "/api/admin/orders"), {"id": "u"})
     monkeypatch.setattr(auth, "role_of", lambda u: "admin")
     assert auth.admin_gate(req("GET", "/api/admin/stats"), {"id": "u"})
+
+
+def test_packer_can_book_courier_but_not_refund(monkeypatch):
+    monkeypatch.setattr(auth, "role_of", lambda u: "packer")
+    oid = "3a399896-43f5-4f46-9db4-510c4434c7c5"
+    assert auth.admin_gate(req("POST", f"/api/admin/orders/{oid}/shiprocket"), {"id": "u"})
+    assert auth.admin_gate(req("POST", f"/api/admin/orders/{oid}/track"), {"id": "u"})
+    with pytest.raises(HTTPException):
+        auth.admin_gate(req("POST", f"/api/admin/orders/{oid}/refund"), {"id": "u"})

@@ -58,6 +58,7 @@ export default function Policies() {
         <li>We collect your name, phone, email and address only to process and deliver your order, and to send you order updates.</li>
         <li>If you enter your mobile number at checkout but don’t finish the order, we keep your cart for up to 60 days and may send you one WhatsApp message to help you complete it.</li>
         <li>We count anonymous visits (which sarees are viewed, added to cart and ordered) to improve the shop. This uses a random browser ID — never your name, phone or email — and is skipped if your browser asks not to be tracked.</li>
+        <li>We send offers on WhatsApp only if you tick “Send me new arrivals” at checkout. Reply STOP or message us anytime to stop.</li>
         <li>We never sell or rent your data. We share it only with our courier and payment partners as needed to complete your order.</li>
         <li>Your data is stored securely on servers in India.</li>
         <li>To see, change or delete your details, sign in to <Link to="/account">My account</Link> or contact us.</li>

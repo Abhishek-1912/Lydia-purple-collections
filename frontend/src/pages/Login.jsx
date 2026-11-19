@@ -7,7 +7,10 @@ import { useTitle } from '../lib/store.js'
 
 export default function Login() {
   useTitle('Sign in')
-  const { user, loading, sendCode, verifyCode, signOut, isAdmin } = useAuth()
+  const { user, loading, sendCode, verifyCode, sendPhoneCode, verifyPhoneCode, signOut, isAdmin } = useAuth()
+  const phoneLogin = import.meta.env.VITE_PHONE_LOGIN === 'true'   // turn on after adding an SMS provider in Supabase
+  const [mode, setMode] = useState('email')
+  const [phone, setPhone] = useState('')
   const [params] = useSearchParams()
   const next = params.get('next') || ''
   const navigate = useNavigate()
@@ -49,10 +52,11 @@ export default function Login() {
   async function onSend(e) {
     e?.preventDefault()
     setError('')
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())) { setError('Please enter a valid email address.'); return }
+    if (mode === 'phone' ? !/^[6-9]\d{9}$/.test(phone) : !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())) { setError(mode === 'phone' ? 'Enter a 10-digit mobile number.' : 'Please enter a valid email address.'); return }
     setBusy(true)
     try {
-      await sendCode(email.trim().toLowerCase(), next)
+      if (mode === 'phone') await sendPhoneCode(phone)
+      else await sendCode(email.trim().toLowerCase(), next)
       setStep('code')
       setCooldown(60)
     } catch (err) { setError(err.message) }
@@ -65,7 +69,8 @@ export default function Login() {
     if (!/^\d{6}$/.test(code)) { setError('Enter the 6-digit code from your email.'); return }
     setBusy(true)
     try {
-      await verifyCode(email.trim().toLowerCase(), code)
+      if (mode === 'phone') await verifyPhoneCode(phone, code)
+      else await verifyCode(email.trim().toLowerCase(), code)
       navigate(next || '/account', { replace: true })
     } catch (err) { setError(err.message) }
     setBusy(false)
@@ -81,16 +86,29 @@ export default function Login() {
       <div className="card">
         {step === 'email' ? (
           <form onSubmit={onSend} noValidate>
+            {phoneLogin && (
+              <div className="cpick-tabs" role="tablist">
+                <button type="button" role="tab" aria-selected={mode === 'email'} className={mode === 'email' ? 'on' : ''} onClick={() => setMode('email')}>✉️ Email</button>
+                <button type="button" role="tab" aria-selected={mode === 'phone'} className={mode === 'phone' ? 'on' : ''} onClick={() => setMode('phone')}>📱 Mobile number</button>
+              </div>
+            )}
+            {mode === 'phone' ? (
+              <div className="field">
+                <label htmlFor="lphone">Mobile number</label>
+                <div className="prefix-input"><span>+91</span><input id="lphone" type="tel" inputMode="numeric" autoComplete="tel-national" value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))} autoFocus /></div>
+              </div>
+            ) : (
             <div className="field">
               <label htmlFor="email">Email address</label>
               <input id="email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} autoFocus />
             </div>
+            )}
             {error && <p className="alert alert-error" role="alert">{error}</p>}
             <button className="btn btn-primary btn-block" disabled={busy}>{busy ? 'Sending…' : 'Send code'}</button>
           </form>
         ) : (
           <form onSubmit={onVerify} noValidate>
-            <p className="small">We sent an email to <strong>{email}</strong>. <strong>Click the link in it</strong>, or type the 6-digit code if it has one. <button type="button" className="link-btn" onClick={() => { setStep('email'); setCode(''); setError('') }}>Change</button></p>
+            <p className="small">{mode === 'phone' ? <>We sent an SMS with a 6-digit code to <strong>+91 {phone}</strong>.</> : <>We sent an email to <strong>{email}</strong>. <strong>Click the link in it</strong>, or type the 6-digit code if it has one.</>} <button type="button" className="link-btn" onClick={() => { setStep('email'); setCode(''); setError('') }}>Change</button></p>
             <div className="field">
               <label htmlFor="code">6-digit code (if your email has one)</label>
               <input id="code" type="text" inputMode="numeric" autoComplete="one-time-code" className="otp-input"

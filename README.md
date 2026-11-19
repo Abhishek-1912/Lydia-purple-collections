@@ -203,3 +203,30 @@ Covers pricing, coupons, COD limit, shipping-after-discount, delivery estimates,
   alter table orders alter column order_no restart with 1001;
   ```
 - [ ] Real products and photos loaded; Lighthouse mobile check on the live URL
+
+## 12. v2 / v3 features
+
+| Feature | Where | Needs |
+|---|---|---|
+| Easy Add (phone wizard: photos, type, price, colours from photo/shade book, border colour, details, video) | Admin → ➕ Add product | — |
+| Reviews with photos (verified buyers, shown after approval, public reply) | Product page · Admin → Reviews | — |
+| Wishlist (browser for guests, account when signed in) | ♡ on cards/product · /wishlist | — |
+| Abandoned carts (draft saved after a valid mobile; WhatsApp reminder with cart-restore link) | Admin → Abandoned | Auto reminders: `WHATSAPP_TEMPLATE_CART`, `SITE_URL` |
+| GST invoices (CGST/SGST or IGST, LPC/YY-YY/NNNN) | Admin → Orders → Invoice · customer order page | GST fields in Admin → Settings |
+| Packer staff role (orders, packing, slips, invoices, courier only) | Admin → Staff | — |
+| Product video (upload ≤ 50 MB or YouTube) | Product form / Easy Add | — |
+| Bridal video-call booking | /video-call · Admin → Video calls | Turn on in Settings → Video-call booking |
+| Gift cards / store credit | Admin → Gift cards · checkout | — |
+| Analytics (anonymous funnel, checkout conversion, repeat rate, COD share) | Admin → Analytics | — |
+| Home main slide editor, banners, 2-second slider | Admin → Settings | — |
+| Filters (availability, price, discount, type, fabric, colour, occasion) | Shop pages | — |
+| Running low restock panel, alert level | Dashboard · Settings | — |
+| **Shiprocket courier** (book, AWB, label, tracking) | Admin → Orders → 🚚 Book courier | `SHIPROCKET_EMAIL`, `SHIPROCKET_PASSWORD`, `SHIPROCKET_PICKUP` |
+| **Razorpay refunds** (full/part) | Admin → Orders → Refund via Razorpay | Razorpay keys |
+| **WhatsApp broadcast** (opted-in customers only; CSV for the Business app works now) | Admin → Broadcast | `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID` + Meta marketing template |
+| **SMS sign-in** | Login page | SMS provider in Supabase → Auth → Phone, then `VITE_PHONE_LOGIN=true` in Vercel |
+
+Bold rows are switched off until their keys are added; they were built and unit-tested but not tried against the real service.
+
+Database migrations to run in order: `001` … `006` (see `supabase/migrations/`).
+Brand assets in `frontend/public/`: `logo-mark.webp` (header), `logo-full.webp` (footer), `favicon-64.png`, `apple-touch-icon.png`, `og-default.jpg` (share image).

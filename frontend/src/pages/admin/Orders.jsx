@@ -7,7 +7,7 @@ import { orderNo, PAYMENT_LABEL, STATUS_LABEL } from '../../lib/india.js'
 const FILTERS = [['', 'All'], ['confirmed', 'To pack'], ['packed', 'To ship'], ['shipped', 'Shipped'], ['delivered', 'Delivered'], ['pending_payment', 'Awaiting payment'], ['cancelled', 'Cancelled']]
 const COURIERS = ['India Post', 'DTDC', 'Delhivery', 'Blue Dart', 'Professional Couriers', 'ST Courier', 'Xpressbees', 'Ekart']
 
-function OrderRow({ o, onChange, onPhoneBlocked }) {
+function OrderRow({ o, onChange, onPhoneBlocked, integ = {} }) {
   const call = useAuthedApi()
   const { isPacker } = useAuth()
   const [open, setOpen] = useState(false)
@@ -17,6 +17,28 @@ function OrderRow({ o, onChange, onPhoneBlocked }) {
   const [msg, setMsg] = useState('')
   const a = o.address || {}
   const when = new Date(o.created_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })
+
+  async function courierAction(path, confirmText) {
+    if (confirmText && !window.confirm(confirmText)) return
+    setBusy(true); setMsg('')
+    try {
+      const r = await call(`/api/admin/orders/${o.id}/${path}`, { method: 'POST', body: {} })
+      onChange(r)
+      if (r.label_url) window.open(r.label_url, '_blank', 'noopener')
+      setMsg(path === 'shiprocket' ? `Booked with ${r.courier || 'courier'} · AWB ${r.tracking_number || '—'}` : `Status: ${r.courier_status || 'no update yet'}`)
+    } catch (e) { setMsg(e.message) }
+    setBusy(false)
+  }
+  async function refundOnline() {
+    const max = o.total - (o.gift_amount || 0) - (o.refund_amount || 0)
+    const v = window.prompt(`Refund how much via Razorpay? (up to ₹${max}). Leave as is for a full refund.`, String(max))
+    if (v === null) return
+    const amount = parseInt(v, 10)
+    setBusy(true); setMsg('')
+    try { onChange(await call(`/api/admin/orders/${o.id}/refund`, { method: 'POST', body: { amount: amount || null, note: `Refund for ${orderNo(o.order_no)}` } })); setMsg('Refund sent to Razorpay. The customer gets it in 5–7 working days.') }
+    catch (e) { setMsg(e.message) }
+    setBusy(false)
+  }
 
   async function toggleBlock() {
     const block = !o.cod_blocked
@@ -69,6 +91,7 @@ function OrderRow({ o, onChange, onPhoneBlocked }) {
                 {o.order_items.map((it, i) => <li key={i}>{it.name}{(it.color || it.size) && ` (${[it.color, it.size].filter(Boolean).join(' / ')})`} × {it.qty} — {rupees(it.price * it.qty)}</li>)}
               </ul>
               <p className="small">Subtotal {rupees(o.subtotal)}{o.discount ? ` · Discount −${rupees(o.discount)} (${o.coupon_code})` : ''} · Shipping {rupees(o.shipping_fee)}{o.cod_fee ? ` · COD ${rupees(o.cod_fee)}` : ''}</p>
+              {(o.courier_status || o.refund_amount) && <p className="small">{o.courier_status && <>🚚 {o.courier_status}</>}{o.refund_amount ? ` · Refunded ₹${o.refund_amount}` : ''}</p>}
               {o.gift_amount > 0 && <p className="small">🎁 Gift card {o.gift_code}: −{rupees(o.gift_amount)}{o.payment_method === 'cod' && <> · <strong>collect {rupees(o.total - o.gift_amount)}</strong></>}</p>}
               <p className="small">Payment: <strong>{PAYMENT_LABEL[o.payment_status]}</strong>{o.razorpay_payment_id && <> · {o.razorpay_payment_id}</>}</p>
             </div>
@@ -87,10 +110,13 @@ function OrderRow({ o, onChange, onPhoneBlocked }) {
           )}
 
           <div className="action-row">
+            {integ.shiprocket && ['confirmed', 'packed'].includes(o.status) && !o.shipment_id && <button className="btn btn-primary btn-sm" disabled={busy} onClick={() => courierAction('shiprocket', 'Book this order with Shiprocket? A courier and AWB number will be assigned.')}>🚚 Book courier</button>}
+            {integ.shiprocket && o.tracking_number && o.shipment_id && <button className="btn btn-outline btn-sm" disabled={busy} onClick={() => courierAction('track')}>Refresh tracking</button>}
             {o.status === 'confirmed' && <button className="btn btn-primary btn-sm" disabled={busy} onClick={() => act('pack')}>Mark packed</button>}
             {['confirmed', 'packed'].includes(o.status) && <button className="btn btn-primary btn-sm" disabled={busy} onClick={() => act('ship')}>Mark shipped</button>}
             {o.status === 'shipped' && !isPacker && <button className="btn btn-primary btn-sm" disabled={busy} onClick={() => act('deliver')}>Mark delivered</button>}
             {o.needs_review && !isPacker && <button className="btn btn-outline btn-sm" disabled={busy} onClick={() => act('review')}>Mark reviewed</button>}
+            {!isPacker && integ.refunds && o.payment_status === 'paid' && o.payment_method === 'razorpay' && <button className="btn btn-outline btn-sm danger" disabled={busy} onClick={refundOnline}>Refund via Razorpay</button>}
             {!isPacker && o.payment_status === 'paid' && o.payment_method === 'razorpay' && <button className="btn btn-outline btn-sm" disabled={busy} onClick={() => act('refund', 'Mark as refunded? Do the actual refund in the Razorpay dashboard.')}>Mark refunded</button>}
             {!isPacker && ['pending_payment', 'confirmed', 'packed'].includes(o.status) && <button className="btn btn-outline btn-sm danger" disabled={busy} onClick={() => act('cancel', `Cancel ${orderNo(o.order_no)}? Stock goes back to the shop.${o.payment_status === 'paid' ? ' Refund it in Razorpay too.' : ''}`)}>Cancel order</button>}
             <Link className="btn btn-outline btn-sm" to={`/admin/print?id=${o.id}`}>Print slip</Link>
@@ -126,6 +152,8 @@ export default function Orders() {
   }, [call, status, review, search])
 
   const [exporting, setExporting] = useState(false)
+  const [integ, setInteg] = useState({})
+  useEffect(() => { call('/api/admin/integrations').then(setInteg).catch(() => {}) }, [call])
   async function exportCsv() {
     setExporting(true); setError('')
     try {
@@ -167,6 +195,7 @@ export default function Orders() {
       {!orders ? <div className="skeleton-block" /> : orders.length ? (
         <ul className="order-list">
           {orders.map((o) => <OrderRow key={o.id} o={o} onChange={(n) => setOrders((all) => all.map((x) => x.id === n.id ? n : x))}
+            integ={integ}
             onPhoneBlocked={(phone, blocked) => setOrders((all) => all.map((x) => x.phone === phone ? { ...x, cod_blocked: blocked } : x))} />)}
         </ul>
       ) : <p className="muted">No orders here.</p>}

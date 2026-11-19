@@ -54,6 +54,7 @@ export default function Checkout() {
   const [gift, setGift] = useState('')
   const [giftInput, setGiftInput] = useState('')
   const [giftOpen, setGiftOpen] = useState(false)
+  const [optIn, setOptIn] = useState(false)
   const [quote, setQuote] = useState(null)
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState('')
@@ -146,6 +147,7 @@ export default function Checkout() {
       payment_method: payMethod,
       session_id: sessionId(),
       gift_code: gift || null,
+      whatsapp_opt_in: optIn,
     }
     let order
     try {
@@ -214,6 +216,7 @@ export default function Checkout() {
                 <input id="phone" type="tel" inputMode="numeric" autoComplete="tel-national" value={form.phone} onChange={set('phone')} {...aria('phone')} />
               </div>
             </Field>
+            <label className="check optin"><input type="checkbox" checked={optIn} onChange={(e) => setOptIn(e.target.checked)} /> Send me new arrivals and offers on WhatsApp (you can stop anytime)</label>
             <Field id="email" label="Email (optional)" error={errors.email}>
               <input id="email" type="email" autoComplete="email" value={form.email} onChange={set('email')} {...aria('email')} />
             </Field>

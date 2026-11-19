@@ -40,7 +40,8 @@ def role_of(user: dict) -> str:
 
 # What a packer may do inside /api/admin: see orders, update packing/shipping, print invoices.
 PACKER_ALLOWED = [("GET", r"^/api/admin/orders/?$"), ("PATCH", r"^/api/admin/orders/[0-9a-f-]+$"),
-                  ("GET", r"^/api/admin/orders/[0-9a-f-]+/invoice$")]
+                  ("GET", r"^/api/admin/orders/[0-9a-f-]+/invoice$"),
+                  ("POST", r"^/api/admin/orders/[0-9a-f-]+/(shiprocket|track)$"), ("GET", r"^/api/admin/integrations$")]
 
 
 def admin_gate(request: Request, user: dict = Depends(require_user)) -> dict:

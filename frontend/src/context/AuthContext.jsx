@@ -61,6 +61,17 @@ export function AuthProvider({ children }) {
       const { error } = await supabase.auth.verifyOtp({ email, token, type: 'email' })
       if (error) throw new Error('That code is wrong or has expired. Please check it or send a new one.')
     },
+    async sendPhoneCode(phone) {
+      const supabase = await getSupabase()
+      setStarted(true)
+      const { error } = await supabase.auth.signInWithOtp({ phone: `+91${phone}` })
+      if (error) throw new Error(error.status === 429 ? 'Too many attempts. Please wait a minute and try again.' : 'Could not send the SMS. Please use email instead.')
+    },
+    async verifyPhoneCode(phone, token) {
+      const supabase = await getSupabase()
+      const { error } = await supabase.auth.verifyOtp({ phone: `+91${phone}`, token, type: 'sms' })
+      if (error) throw new Error('That code is wrong or has expired. Please check it or send a new one.')
+    },
     async signOut() { const supabase = await getSupabase(); await supabase?.auth.signOut(); setSession(null); setProfile(null) },
     refreshProfile: () => loadProfile(session),
   }
