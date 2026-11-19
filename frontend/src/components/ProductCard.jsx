@@ -23,6 +23,7 @@ export default function ProductCard({ product: p }) {
     <article className="pcard">
       <Link to={url} className="pcard-media" tabIndex={-1} aria-hidden="true">
         <ProductImage src={firstImg?.url} alt="" hex={p.colors[0]?.hex} />
+        {p.images[1] && <img className="pimg pcard-alt" src={p.images[1].url} alt="" loading="lazy" decoding="async" />}
         <div className="pcard-tags">
           {!p.in_stock ? <span className="tag tag-dark">Sold out</span>
             : p.discount_pct > 0 && <span className="tag tag-sale">{p.discount_pct}% off</span>}

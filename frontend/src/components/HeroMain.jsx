@@ -1,8 +1,11 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
+
+let played = false // the heading rises in only once per visit, not every time the slider comes back
 
 export const HERO_DEFAULTS = {
   bg: 'design', bg_url: '', bg_colour: '#5E1A73', dark: 35, mandala: true,
-  eyebrow: 'Handpicked silks · Shipped across India',
+  eyebrow: 'Handpicked silks, shipped across India',
   title: 'Draped in tradition,\nwoven for you',
   subtitle: 'Kanjivaram, Banarasi and soft silk sarees for every pooja, function and wedding.',
   btn1: 'Shop Sarees', btn1_link: '/collections/sarees',
@@ -11,6 +14,7 @@ export const HERO_DEFAULTS = {
 
 /** The main (first) home slide. Everything on it can be changed in Admin → Settings → Main slide. */
 export default function HeroMain({ hero = {}, preview = false }) {
+  const [rise] = useState(() => { const r = !played && !preview; if (!preview) played = true; return r })
   // Missing = original text; blank text = hidden (except the heading, which always shows something)
   const h = { ...HERO_DEFAULTS, ...Object.fromEntries(Object.entries(hero).filter(([, v]) => v != null)) }
   if (!h.title.trim()) h.title = HERO_DEFAULTS.title
@@ -33,7 +37,7 @@ export default function HeroMain({ hero = {}, preview = false }) {
       {h.mandala && <img className="hero-mandala" src="/mandala.webp" alt="" width="460" height="460" decoding="async" fetchpriority="low" />}
       <div className="container hero-inner">
         {h.eyebrow && <p className="eyebrow">{h.eyebrow}</p>}
-        <H className="hero-title">{lines.map((l, i) => <span key={i}>{l}{i < lines.length - 1 && <br />}</span>)}</H>
+        <H className={`hero-title ${rise ? 'rise' : ''}`}>{lines.map((l, i) => <span key={i} className="hero-line" style={{ '--d': `${i * 140}ms` }}>{l}</span>)}</H>
         {h.subtitle && <p className="display hero-sub">{h.subtitle}</p>}
         <div className="hero-ctas">
           {h.btn1 && <Btn to={h.btn1_link} className="btn btn-gold">{h.btn1}</Btn>}
