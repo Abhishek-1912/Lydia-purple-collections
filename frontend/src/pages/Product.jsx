@@ -9,6 +9,9 @@ import { productWhatsApp, useStoreRules, useTitle } from '../lib/store.js'
 import NotFound from './NotFound.jsx'
 import DeliveryCheck from '../components/DeliveryCheck.jsx'
 import Gallery from '../components/Gallery.jsx'
+import Reviews from '../components/Reviews.jsx'
+import WishButton from '../components/WishButton.jsx'
+import Stars from '../components/Stars.jsx'
 import { swatchBg } from '../lib/shades.js'
 
 export default function Product() {
@@ -98,6 +101,10 @@ export default function Product() {
               {soldOut && <span className="tag tag-dark">Sold out</span>}
             </div>
             <h1 className="pdp-title">{p.name}</h1>
+            <div className="pdp-sub">
+              {p.rating?.count > 0 && <a href="#reviews" className="pdp-rating"><Stars value={p.rating.average} size={15} label={false} /> {p.rating.average.toFixed(1)} · {p.rating.count} review{p.rating.count === 1 ? '' : 's'}</a>}
+              <WishButton product={p} variant="inline" />
+            </div>
             <div className="price-row big">
               <span className="price">{rupees(p.price)}</span>
               {p.mrp > p.price && <><s className="mrp">{rupees(p.mrp)}</s><span className="save">Save {p.discount_pct}%</span></>}
@@ -176,6 +183,8 @@ export default function Product() {
           </div>
         </div>
       </section>
+
+      <Reviews slug={p.slug} />
 
       {p.related?.length > 0 && (
         <section className="container section">

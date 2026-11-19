@@ -1,4 +1,5 @@
 -- Lydia Purple Collections — Supabase schema
+-- Fresh install: run this file, then run every file in supabase/migrations/ in order (001, 002, …).
 -- Run once in Supabase → SQL Editor. Safe to re-run on an empty project.
 
 create extension if not exists pgcrypto;

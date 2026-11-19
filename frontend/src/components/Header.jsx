@@ -4,6 +4,8 @@ import { BagIcon, UserIcon, MenuIcon } from './Icons.jsx'
 import { SHOP_NAME } from '../lib/config.js'
 import { useCart } from '../context/CartContext.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
+import { useWishlist } from '../context/WishlistContext.jsx'
+import { HeartIcon } from './WishButton.jsx'
 import { useSettings } from '../context/SettingsContext.jsx'
 import { rupees } from '../lib/config.js'
 import { api } from '../lib/api.js'
@@ -30,6 +32,7 @@ export default function Header() {
   useEffect(() => { setOpen(false) }, [pathname])
   const { count: cartCount } = useCart()
   const { user, isAdmin } = useAuth()
+  const { count: wishCount } = useWishlist()
   const st = useSettings()
   const announce = st.announcement || `Free shipping above ${rupees(st.free_shipping_above)} · UPI & COD · WhatsApp orders`
 
@@ -50,6 +53,10 @@ export default function Header() {
         </Link>
         <div className="header-actions">
           {isAdmin && <Link to="/admin" className="admin-pill">Admin</Link>}
+          <Link to="/wishlist" className="icon-btn cart-btn" aria-label={`Wishlist, ${wishCount} saved`}>
+            <HeartIcon />
+            {wishCount > 0 && <span className="badge">{wishCount}</span>}
+          </Link>
           <Link to={user ? '/account' : '/login'} className="icon-btn" aria-label={user ? 'My account' : 'Sign in'}><UserIcon /></Link>
           <Link to="/cart" className="icon-btn cart-btn" aria-label={`Cart, ${cartCount} items`}>
             <BagIcon />

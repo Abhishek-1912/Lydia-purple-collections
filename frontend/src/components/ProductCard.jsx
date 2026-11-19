@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import ProductImage from './ProductImage.jsx'
 import { WhatsAppIcon } from './Icons.jsx'
+import WishButton from './WishButton.jsx'
+import Stars from './Stars.jsx'
 import { useCart } from '../context/CartContext.jsx'
 import { rupees } from '../lib/config.js'
 import { productWhatsApp } from '../lib/store.js'
@@ -24,6 +26,7 @@ export default function ProductCard({ product: p }) {
       <Link to={url} className="pcard-media" tabIndex={-1} aria-hidden="true">
         <ProductImage src={firstImg?.url} alt="" hex={p.colors[0]?.hex} />
         {p.images[1] && <img className="pimg pcard-alt" src={p.images[1].url} alt="" loading="lazy" decoding="async" />}
+        <WishButton product={p} />
         <div className="pcard-tags">
           {!p.in_stock ? <span className="tag tag-dark">Sold out</span>
             : p.discount_pct > 0 && <span className="tag tag-sale">{p.discount_pct}% off</span>}
@@ -36,6 +39,7 @@ export default function ProductCard({ product: p }) {
           <span className="price">{rupees(p.price)}</span>
           {p.mrp > p.price && <s className="mrp" aria-label={`MRP ${rupees(p.mrp)}`}>{rupees(p.mrp)}</s>}
         </div>
+        {p.rating?.count > 0 && <p className="pcard-rating"><Stars value={p.rating.average} size={12} label={false} /> <span>{p.rating.average.toFixed(1)} ({p.rating.count})</span></p>}
         {p.colors.length > 1 && <p className="pcard-meta">{p.colors.length} colours</p>}
         <div className="pcard-actions">
           {!p.in_stock ? <Link to={url} className="btn btn-outline btn-sm">View</Link>

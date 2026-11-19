@@ -68,7 +68,7 @@ def get_product(slug: str):
             .eq("slug", slug).eq("is_active", True).limit(1).execute().data)
     if not rows or not services.visible(rows[0]):
         raise HTTPException(404, "Product not found")
-    product = services.shape_product(rows[0])
+    product = services.shape_product(rows[0]) | {"rating": services.ratings().get(rows[0]["id"])}
     others = [p for p in services.all_products() if p["id"] != product["id"] and p["in_stock"]]
     cat = product["category"] and product["category"]["slug"]
     others.sort(key=lambda p: (not (p["category"] and p["category"]["slug"] == cat), p["sort_order"]))

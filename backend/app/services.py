@@ -75,9 +75,22 @@ def visible(p: dict) -> bool:
     return p["is_active"] and (cat is None or cat.get("is_active", True))
 
 
+def ratings() -> dict[str, dict]:
+    """Average rating and count per product (approved reviews only). Empty if reviews table missing."""
+    try:
+        rows = get_db().table("reviews").select("product_id,rating").eq("status", "approved").execute().data
+    except Exception:
+        return {}
+    out: dict[str, list[int]] = {}
+    for r in rows:
+        out.setdefault(r["product_id"], []).append(r["rating"])
+    return {k: {"average": round(sum(v) / len(v), 1), "count": len(v)} for k, v in out.items()}
+
+
 def all_products() -> list[dict]:
     rows = get_db().table("products").select(PRODUCT_SELECT).eq("is_active", True).execute().data
-    return [shape_product(p) for p in rows if visible(p)]
+    rt = ratings()
+    return [shape_product(p) | {"rating": rt.get(p["id"])} for p in rows if visible(p)]
 
 
 def get_coupon(code: str) -> dict | None:
