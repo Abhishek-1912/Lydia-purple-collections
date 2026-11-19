@@ -6,19 +6,26 @@ import { useCart } from '../context/CartContext.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useSettings } from '../context/SettingsContext.jsx'
 import { rupees } from '../lib/config.js'
+import { api } from '../lib/api.js'
 
-const NAV = [
-  { to: '/collections/sarees', label: 'Sarees' },
-  { to: '/collections/ethnic-wear', label: 'Ethnic Wear' },
+// Menu: Home, All, then live categories from Admin → Categories (hidden ones never show), then collections.
+const FALLBACK_CATS = [{ slug: 'sarees', name: 'Sarees' }, { slug: 'ethnic-wear', name: 'Ethnic Wear' }]
+let catsPromise
+const loadCats = () => (catsPromise ||= api('/api/categories').catch(() => { catsPromise = null; return FALLBACK_CATS }))
+const navItems = (cats) => [
+  { to: '/', label: 'Home', end: true },
+  { to: '/shop', label: 'All' },
+  ...cats.map((c) => ({ to: `/collections/${c.slug}`, label: c.name })),
   { to: '/bridal', label: 'Bridal' },
   { to: '/new-arrivals', label: 'New Arrivals' },
   { to: '/clearance', label: 'Clearance' },
-  { to: '/shop', label: 'All' },
   { to: '/contact', label: 'Contact' },
 ]
 
 export default function Header() {
   const [open, setOpen] = useState(false)
+  const [cats, setCats] = useState(FALLBACK_CATS)
+  useEffect(() => { loadCats().then((c) => c?.length && setCats(c)) }, [])
   const { pathname } = useLocation()
   useEffect(() => { setOpen(false) }, [pathname])
   const { count: cartCount } = useCart()
@@ -52,8 +59,8 @@ export default function Header() {
       </div>
       <nav id="main-nav" className={`main-nav ${open ? 'open' : ''}`} aria-label="Main">
         <ul className="container">
-          {NAV.map((n) => (
-            <li key={n.to}><NavLink to={n.to}>{n.label}</NavLink></li>
+          {navItems(cats).map((n) => (
+            <li key={n.to}><NavLink to={n.to} end={n.end}>{n.label}</NavLink></li>
           ))}
         </ul>
       </nav>

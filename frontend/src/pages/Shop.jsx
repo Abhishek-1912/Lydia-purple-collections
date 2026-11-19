@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { ProductGrid } from '../components/ProductCard.jsx'
 import { api } from '../lib/api.js'
 import { useTitle } from '../lib/store.js'
+import ShopFilters from '../components/ShopFilters.jsx'
+import { activeCount, facets as buildFacets, passes, readFilters } from '../lib/filters.js'
 
 const PRESETS = {
   bridal: { title: 'The Bridal Edit', filter: 'bridal=true', blurb: 'Heirloom silks for the wedding and every ritual around it.' },
@@ -26,7 +28,6 @@ export default function Shop({ preset }) {
   const [search, setSearch] = useState(params.get('q') || '')
 
   const sort = params.get('sort') || 'featured'
-  const inStock = params.get('in_stock') === '1'
   const q = params.get('q') || ''
 
   useEffect(() => { api('/api/categories').then(setCats).catch(() => {}) }, [])
@@ -40,7 +41,6 @@ export default function Shop({ preset }) {
   useEffect(() => {
     const qs = new URLSearchParams(info.filter)
     qs.set('sort', sort)
-    if (inStock) qs.set('in_stock', 'true')
     if (q) qs.set('q', q)
     setLoading(true)
     setError('')
@@ -48,7 +48,41 @@ export default function Shop({ preset }) {
       .then(setProducts)
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false))
-  }, [info.filter, sort, inStock, q])
+  }, [info.filter, sort, q])
+
+  const [panel, setPanel] = useState(false)
+  const filters = useMemo(() => readFilters(params), [params])
+  const facets = useMemo(() => buildFacets(products, filters, cats), [products, filters, cats])
+  const shown = useMemo(() => products.filter((p) => passes(p, filters)), [products, filters])
+  const nActive = activeCount(filters)
+  const closePanel = useCallback(() => setPanel(false), [])
+
+  function toggle(key, id) {
+    const next = new URLSearchParams(params)
+    if (key === 'disc') {
+      Number(id) === filters.disc ? next.delete('disc') : next.set('disc', id)
+    } else {
+      const cur = filters[key]
+      const list = cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]
+      list.length ? next.set(key, list.join(',')) : next.delete(key)
+    }
+    setParams(next, { replace: true })
+  }
+  function clearFilters() {
+    const next = new URLSearchParams()
+    if (params.get('q')) next.set('q', params.get('q'))
+    if (params.get('sort')) next.set('sort', params.get('sort'))
+    setParams(next, { replace: true })
+  }
+  const chips = [
+    ...filters.avail.map((v) => ['avail', v, v === 'in' ? 'In stock' : 'Sold out']),
+    ...filters.price.map((v) => ['price', v, facets.price.find((o) => o.id === v)?.label || v]),
+    ...(filters.disc ? [['disc', String(filters.disc), `${filters.disc}%+ off`]] : []),
+    ...filters.type.map((v) => ['type', v, facets.type.find((o) => o.id === v)?.label || v]),
+    ...filters.fabric.map((v) => ['fabric', v, v]),
+    ...filters.colour.map((v) => ['colour', v, v]),
+    ...filters.occ.map((v) => ['occ', v, v]),
+  ]
 
   function update(key, value) {
     const next = new URLSearchParams(params)
@@ -71,10 +105,9 @@ export default function Shop({ preset }) {
           <button className="btn btn-primary btn-sm" type="submit">Search</button>
         </form>
         <div className="toolbar-row">
-          <label className="check">
-            <input type="checkbox" checked={inStock} onChange={(e) => update('in_stock', e.target.checked ? '1' : '')} />
-            In stock only
-          </label>
+          <button type="button" className="btn btn-outline btn-sm filters-btn" onClick={() => setPanel(true)} aria-expanded={panel}>
+            ☰ Filters{nActive > 0 && ` (${nActive})`}
+          </button>
           <label className="select-label">
             <span className="sr-only">Sort by</span>
             <select value={sort} onChange={(e) => update('sort', e.target.value === 'featured' ? '' : e.target.value)}>
@@ -85,11 +118,23 @@ export default function Shop({ preset }) {
       </div>
 
       {error ? <p className="alert alert-error" role="alert">{error}</p> : (
-        <>
-          {!loading && <p className="muted small" aria-live="polite">{products.length} {products.length === 1 ? 'product' : 'products'}{q && ` for “${q}”`}</p>}
-          <ProductGrid products={products} loading={loading}
-            empty={q ? `Nothing matches “${q}”. Try another word, or ask us on WhatsApp.` : 'No products here yet.'} />
-        </>
+        <div className="shop-layout">
+          <ShopFilters facets={facets} filters={filters} onToggle={toggle} onClear={clearFilters} total={shown.length}
+            hideType={!!category} open={panel} onClose={closePanel} />
+          <div className="shop-results">
+            {!loading && <p className="muted small" aria-live="polite">{shown.length} {shown.length === 1 ? 'product' : 'products'}{q && ` for “${q}”`}</p>}
+            {chips.length > 0 && (
+              <div className="fchips">
+                {chips.map(([k, v, label]) => (
+                  <button key={k + v} type="button" className="fchip" onClick={() => toggle(k, v)} aria-label={`Remove filter ${label}`}>{label} ✕</button>
+                ))}
+                <button type="button" className="link-btn" onClick={clearFilters}>Clear all</button>
+              </div>
+            )}
+            <ProductGrid products={shown} loading={loading}
+              empty={nActive ? 'No products match these filters. Try removing one.' : q ? `Nothing matches “${q}”. Try another word, or ask us on WhatsApp.` : 'No products here yet.'} />
+          </div>
+        </div>
       )}
     </section>
   )

@@ -3,9 +3,10 @@ import { Link } from 'react-router-dom'
 import { useSettings } from '../context/SettingsContext.jsx'
 
 // Home top slider: slide 1 = the designed purple hero (children), then banner photos from Admin → Settings.
-// Banners are shown whole and sharp at their real shape (never cropped), with ‹ › / swipe / dots, auto every 5 s.
+// Banners are shown whole and sharp at their real shape (never cropped), with ‹ › / swipe / dots.
+// Auto-slides every N seconds (Admin → Settings → Seconds per slide, default 2).
 export default function HeroSlider({ children }) {
-  const { banners = [] } = useSettings()
+  const { banners = [], slide_seconds: secs = 2 } = useSettings()
   const total = 1 + banners.length
   const [i, setI] = useState(0)
   const [pausedUntil, setPausedUntil] = useState(0)
@@ -15,9 +16,9 @@ export default function HeroSlider({ children }) {
   useEffect(() => { if (i >= total) setI(0) }, [total, i])
   useEffect(() => {
     if (total < 2 || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return
-    const t = setInterval(() => { if (!document.hidden && Date.now() >= pausedUntil) setI((x) => (x + 1) % total) }, 5000)
+    const t = setInterval(() => { if (!document.hidden && Date.now() >= pausedUntil) setI((x) => (x + 1) % total) }, Math.max(2, secs) * 1000)
     return () => clearInterval(t)
-  }, [total, pausedUntil])
+  }, [total, pausedUntil, secs])
 
   if (total === 1) return children
 

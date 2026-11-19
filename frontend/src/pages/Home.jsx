@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { WhatsAppIcon } from '../components/Icons.jsx'
 import HeroSlider from '../components/HeroSlider.jsx'
+import HeroMain from '../components/HeroMain.jsx'
+import { useSettings } from '../context/SettingsContext.jsx'
 import { api } from '../lib/api.js'
 import { ProductGrid } from '../components/ProductCard.jsx'
 import { whatsappLink } from '../lib/config.js'
@@ -19,6 +21,7 @@ const FALLBACK_CATS = [
 ]
 
 export default function Home() {
+  const settings = useSettings()
   const [cats, setCats] = useState(FALLBACK_CATS)
   const [fresh, setFresh] = useState(null)
   const [bridal, setBridal] = useState(null)
@@ -32,18 +35,7 @@ export default function Home() {
   return (
     <>
       <HeroSlider>
-      <section className="hero">
-        <img className="hero-mandala" src="/mandala.webp" alt="" width="460" height="460" decoding="async" fetchpriority="low" />
-        <div className="container hero-inner">
-          <p className="eyebrow">Handpicked silks · Shipped across India</p>
-          <h1>Draped in tradition,<br />woven for you</h1>
-          <p className="display hero-sub">Kanjivaram, Banarasi and soft silk sarees for every pooja, function and wedding.</p>
-          <div className="hero-ctas">
-            <Link to="/collections/sarees" className="btn btn-gold">Shop Sarees</Link>
-            <Link to="/bridal" className="btn btn-ghost-light">Bridal Edit</Link>
-          </div>
-        </div>
-      </section>
+      <HeroMain hero={settings.hero} />
       </HeroSlider>
 
       <ul className="trust container" aria-label="Why shop with us">

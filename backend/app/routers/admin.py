@@ -526,6 +526,27 @@ def put_store_settings(body: dict):
             out.append({"url": url, "link": link, "alt": str(b.get("alt") or "")[:120],
                         "w": int(b.get("w") or 0), "h": int(b.get("h") or 0)})
         clean["banners"] = out
+    if "hero" in body:
+        h, base = body.get("hero") or {}, f"{get_settings().supabase_url}/storage/v1/object/public/{BUCKET}/banners/"
+        bg = h.get("bg") if h.get("bg") in ("design", "photo", "colour") else "design"
+        url = str(h.get("bg_url") or "")
+        if bg == "photo" and not url.startswith(base):
+            raise HTTPException(400, "Upload the background photo from this page first.")
+        colour = str(h.get("bg_colour") or "")
+        if colour and not re.fullmatch(r"#[0-9A-Fa-f]{6}", colour):
+            raise HTTPException(400, "Background colour should look like #5E1A73.")
+        link = lambda v, d: v if isinstance(v, str) and re.fullmatch(r"/[A-Za-z0-9/_?=&#-]*", v) else d  # noqa: E731
+        txt = lambda k, n: str(h.get(k) or "").strip()[:n]  # noqa: E731
+        clean["hero"] = {"bg": bg, "bg_url": url if bg == "photo" else "", "bg_colour": colour,
+                         "dark": max(0, min(80, int(h.get("dark") or 0))), "mandala": bool(h.get("mandala", True)),
+                         "eyebrow": txt("eyebrow", 80), "title": txt("title", 90), "subtitle": txt("subtitle", 200),
+                         "btn1": txt("btn1", 30), "btn1_link": link(h.get("btn1_link"), "/collections/sarees"),
+                         "btn2": txt("btn2", 30), "btn2_link": link(h.get("btn2_link"), "/bridal")}
+    if "slide_seconds" in body:
+        try:
+            clean["slide_seconds"] = max(2, min(15, int(body["slide_seconds"])))
+        except (TypeError, ValueError):
+            raise HTTPException(400, "Seconds per slide must be a number.")
     for k, v in body.items():
         if k in store.NUMBER_FIELDS:
             lo, hi = store.NUMBER_FIELDS[k]
