@@ -77,6 +77,8 @@ main { min-height: 100vh; }  /* keeps the footer below the fold while content lo
 .btn-gold { background: var(--gold); color: var(--plum); }
 .btn-gold:hover { background: var(--gold-soft); }
 .btn-outline { background: transparent; color: var(--purple); border-color: var(--purple); }
+.btn-danger { background: transparent; color: #A12A2A; border-color: #A12A2A; }
+.btn-danger:hover { background: #A12A2A; color: #fff; }
 .btn-ghost-light { background: transparent; color: var(--gold-soft); border-color: var(--gold-soft); }
 .btn-wa { background: var(--wa); color: #fff; }
 .btn-block { width: 100%; }

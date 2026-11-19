@@ -176,6 +176,15 @@ export default function Products() {
     setItems((all) => all.map((x) => x.id === p.id ? updated : x))
   }
 
+  async function remove(p) {
+    if (!window.confirm(`Delete “${p.name}” for good? This can’t be undone. Past orders keep their details.\n\nTo only take it off the shop for now, press Cancel and use Hide instead.`)) return
+    setError('')
+    try {
+      await call(`/api/admin/products/${p.id}`, { method: 'DELETE' })
+      setItems((all) => all.filter((x) => x.id !== p.id))
+    } catch (e) { setError(e.message) }
+  }
+
   const t = q.trim().toLowerCase()
   const shown = (items || []).filter((p) => !t || p.name.toLowerCase().includes(t) || p.variants.some((v) => (v.sku || '').toLowerCase().includes(t)))
 
@@ -219,6 +228,7 @@ export default function Products() {
               <div className="ap-actions">
                 <button className="btn btn-outline btn-sm" onClick={() => setQuickId(quickId === p.id ? null : p.id)} aria-expanded={quickId === p.id}>Stock / price</button>
                 <button className="btn btn-outline btn-sm" onClick={() => toggle(p)}>{p.is_active ? 'Hide' : 'Show'}</button>
+                <button className="btn btn-danger btn-sm" onClick={() => remove(p)} aria-label={`Delete ${p.name}`}>Delete</button>
               </div>
               {quickId === p.id && <QuickEdit p={p} onClose={() => setQuickId(null)} onSaved={(u) => setItems((all) => all.map((x) => x.id === u.id ? u : x))} />}
             </li>
