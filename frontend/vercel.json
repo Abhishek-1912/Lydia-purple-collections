@@ -9,17 +9,6 @@
       "destination": "/api/robots"
     },
     {
-      "source": "/",
-      "has": [
-        {
-          "type": "header",
-          "key": "user-agent",
-          "value": "(?i).*(whatsapp|facebookexternalhit|facebot|meta-externalagent|instagram|telegrambot|twitterbot|linkedinbot|slackbot|discordbot|pinterest|skypeuripreview).*"
-        }
-      ],
-      "destination": "/api/preview"
-    },
-    {
       "source": "/products/:slug",
       "has": [
         {
