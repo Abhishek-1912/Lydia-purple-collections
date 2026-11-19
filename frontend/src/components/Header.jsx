@@ -4,6 +4,8 @@ import { Lotus, BagIcon, UserIcon, MenuIcon } from './Icons.jsx'
 import { SHOP_NAME } from '../lib/config.js'
 import { useCart } from '../context/CartContext.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
+import { useSettings } from '../context/SettingsContext.jsx'
+import { rupees } from '../lib/config.js'
 
 const NAV = [
   { to: '/collections/sarees', label: 'Sarees' },
@@ -21,10 +23,12 @@ export default function Header() {
   useEffect(() => { setOpen(false) }, [pathname])
   const { count: cartCount } = useCart()
   const { user, isAdmin } = useAuth()
+  const st = useSettings()
+  const announce = st.announcement || `Free shipping above ${rupees(st.free_shipping_above)} · UPI & COD · WhatsApp orders`
 
   return (
     <header className="site-header">
-      <div className="announce">Free shipping above ₹1,999 · UPI & COD · WhatsApp orders</div>
+      <div className="announce">{announce}</div>
       <div className="header-bar container">
         <button className="icon-btn menu-btn" aria-label={open ? 'Close menu' : 'Open menu'}
           aria-expanded={open} aria-controls="main-nav" onClick={() => setOpen(!open)}>

@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, HTTPException, Request
 
-from .. import delivery, notify, services
+from .. import delivery, notify, services, store
 from ..config import get_settings
 from ..db import get_db
 from ..schemas import ContactIn, QuoteIn
@@ -80,9 +80,9 @@ def get_product(slug: str):
 def delivery_estimate(pin: str):
     if not re.fullmatch(r"[1-9][0-9]{5}", pin or ""):
         raise HTTPException(400, "Please enter a valid 6-digit PIN code.")
-    s = get_settings()
+    c = store.current()
     today = datetime.now(timezone(timedelta(hours=5, minutes=30))).date()
-    return delivery.estimate(pin, today, s.shop_pin, s.dispatch_days) | {"pin": pin}
+    return delivery.estimate(pin, today, c["shop_pin"], int(c["dispatch_days"])) | {"pin": pin}
 
 
 @router.post("/cart/quote")
@@ -92,12 +92,9 @@ def cart_quote(body: QuoteIn):
 
 @router.get("/store-rules")
 def store_rules():
-    s = get_settings()
-    return {
-        "free_shipping_above": s.free_shipping_above,
-        "shipping_fee": s.shipping_fee,
-        "cod_fee": s.cod_fee,
-        "cod_max_order": s.cod_max_order,
+    s, c = get_settings(), store.current()
+    return {k: c[k] for k in ("free_shipping_above", "shipping_fee", "cod_fee", "cod_max_order",
+                              "whatsapp", "phone", "email", "address", "hours", "instagram", "announcement")} | {
         "payment_timeout_minutes": s.payment_timeout_minutes,
         "razorpay_enabled": s.razorpay_enabled,
         "razorpay_key_id": s.razorpay_key_id,

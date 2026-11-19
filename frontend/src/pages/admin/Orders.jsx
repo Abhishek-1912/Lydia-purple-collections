@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useAuth, useAuthedApi } from '../../context/AuthContext.jsx'
 import { config, rupees, whatsappLink } from '../../lib/config.js'
 import { orderNo, PAYMENT_LABEL, STATUS_LABEL } from '../../lib/india.js'
@@ -91,6 +91,7 @@ function OrderRow({ o, onChange, onPhoneBlocked }) {
             {o.needs_review && <button className="btn btn-outline btn-sm" disabled={busy} onClick={() => act('review')}>Mark reviewed</button>}
             {o.payment_status === 'paid' && o.payment_method === 'razorpay' && <button className="btn btn-outline btn-sm" disabled={busy} onClick={() => act('refund', 'Mark as refunded? Do the actual refund in the Razorpay dashboard.')}>Mark refunded</button>}
             {['pending_payment', 'confirmed', 'packed'].includes(o.status) && <button className="btn btn-outline btn-sm danger" disabled={busy} onClick={() => act('cancel', `Cancel ${orderNo(o.order_no)}? Stock goes back to the shop.${o.payment_status === 'paid' ? ' Refund it in Razorpay too.' : ''}`)}>Cancel order</button>}
+            <Link className="btn btn-outline btn-sm" to={`/admin/print?id=${o.id}`}>Print slip</Link>
             <button className="btn btn-outline btn-sm danger" disabled={busy} onClick={toggleBlock}>{o.cod_blocked ? 'Unblock COD' : 'Block COD'}</button>
             <a className="btn btn-wa btn-sm" href={whatsappLink(waText).replace(/wa\.me\/\d+/, `wa.me/91${o.phone}`)} target="_blank" rel="noreferrer">WhatsApp customer</a>
           </div>
@@ -106,7 +107,7 @@ export default function Orders() {
   const { getToken } = useAuth()
   const [params, setParams] = useSearchParams()
   const [orders, setOrders] = useState(null)
-  const [q, setQ] = useState('')
+  const [q, setQ] = useState(() => params.get('q') || '')
   const [error, setError] = useState('')
   const status = params.get('status') || ''
   const review = params.get('review') === '1'
@@ -144,7 +145,10 @@ export default function Orders() {
     <>
       <div className="admin-title-row">
         <h1 className="admin-h">Orders</h1>
-        <button className="btn btn-outline btn-sm" onClick={exportCsv} disabled={exporting}>{exporting ? 'Preparing…' : 'Download CSV'}</button>
+        <div className="row-gap">
+          <Link className="btn btn-outline btn-sm" to="/admin/print?status=confirmed">Print slips (to pack)</Link>
+          <button className="btn btn-outline btn-sm" onClick={exportCsv} disabled={exporting}>{exporting ? 'Preparing…' : 'Download CSV'}</button>
+        </div>
       </div>
       <datalist id="couriers">{COURIERS.map((c) => <option key={c} value={c} />)}</datalist>
       <form className="search" onSubmit={(e) => { e.preventDefault(); setFilter('q', q.trim()) }}>

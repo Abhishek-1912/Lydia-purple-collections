@@ -5,16 +5,19 @@ import App from './App.jsx'
 import { Analytics } from '@vercel/analytics/react'
 import { CartProvider } from './context/CartContext.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
+import { SettingsProvider } from './context/SettingsContext.jsx'
 import './styles.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
-      <AuthProvider>
-        <CartProvider>
-          <App />
-        </CartProvider>
-      </AuthProvider>
+      <SettingsProvider>
+        <AuthProvider>
+          <CartProvider>
+            <App />
+          </CartProvider>
+        </AuthProvider>
+      </SettingsProvider>
       <Analytics />
     </BrowserRouter>
   </React.StrictMode>

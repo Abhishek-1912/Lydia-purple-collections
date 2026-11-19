@@ -17,8 +17,8 @@ SIZE_ORDER = ["XS", "S", "M", "L", "XL", "XXL", "3XL", "Free size"]
 
 
 def rules() -> Rules:
-    s = get_settings()
-    return Rules(s.free_shipping_above, s.shipping_fee, s.cod_fee, s.cod_max_order)
+    from .store import rules as store_rules
+    return store_rules()
 
 
 def _ts(v):

@@ -49,7 +49,7 @@ export default function Contact() {
             {config.phone && <><dt>Phone</dt><dd><a href={`tel:${config.phone.replace(/\s/g, '')}`}>{config.phone}</a></dd></>}
             {config.email && <><dt>Email</dt><dd><a href={`mailto:${config.email}`}>{config.email}</a></dd></>}
             {config.address && <><dt>Visit us</dt><dd>{config.address}</dd></>}
-            <dt>Store hours</dt><dd>{config.hours}</dd>
+            {config.hours && <><dt>Store hours</dt><dd>{config.hours}</dd></>}
             {config.instagram && <><dt>Instagram</dt><dd><a href={config.instagram} target="_blank" rel="noreferrer">Follow us</a></dd></>}
           </dl>
         </div>

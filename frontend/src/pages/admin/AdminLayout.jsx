@@ -23,7 +23,11 @@ export default function AdminLayout() {
           <NavLink to="/admin" end>Dashboard</NavLink>
           <NavLink to="/admin/orders">Orders</NavLink>
           <NavLink to="/admin/products">Products</NavLink>
+          <NavLink to="/admin/customers">Customers</NavLink>
           <NavLink to="/admin/coupons">Coupons</NavLink>
+          <NavLink to="/admin/categories">Categories</NavLink>
+          <NavLink to="/admin/settings">Settings</NavLink>
+          <NavLink to="/admin/staff">Staff</NavLink>
         </div>
       </nav>
       <div className="container admin-body"><Outlet /></div>

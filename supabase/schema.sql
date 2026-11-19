@@ -174,6 +174,14 @@ create table if not exists blocked_phones (
   created_at timestamptz not null default now()
 );
 
+-- Store settings edited from Admin → Settings (single row)
+create table if not exists store_settings (
+  id         int primary key default 1 check (id = 1),
+  data       jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now()
+);
+insert into store_settings (id) values (1) on conflict (id) do nothing;
+
 -- ───────────────────────── order functions ─────────────────────────
 -- place_order: order + items + stock reservation in ONE transaction.
 -- Raises OUT_OF_STOCK:<variant_id> or COUPON_LIMIT; then nothing is saved.
@@ -311,6 +319,7 @@ alter table coupons          enable row level security;
 alter table orders           enable row level security;
 alter table order_items      enable row level security;
 alter table blocked_phones   enable row level security;
+alter table store_settings   enable row level security;
 
 drop policy if exists "own profile"      on profiles;
 create policy "own profile"      on profiles for select using (auth.uid() = id);

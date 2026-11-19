@@ -18,6 +18,11 @@ const AdminOrders = lazy(() => import('./pages/admin/Orders.jsx'))
 const AdminProducts = lazy(() => import('./pages/admin/Products.jsx'))
 const ProductForm = lazy(() => import('./pages/admin/ProductForm.jsx'))
 const Coupons = lazy(() => import('./pages/admin/Coupons.jsx'))
+const AdminSettings = lazy(() => import('./pages/admin/Settings.jsx'))
+const Categories = lazy(() => import('./pages/admin/Categories.jsx'))
+const Customers = lazy(() => import('./pages/admin/Customers.jsx'))
+const Staff = lazy(() => import('./pages/admin/Staff.jsx'))
+const PrintSlips = lazy(() => import('./pages/admin/PrintSlips.jsx'))
 import NotFound from './pages/NotFound.jsx'
 
 export default function App() {
@@ -46,6 +51,11 @@ export default function App() {
           <Route path="products" element={<AdminProducts />} />
           <Route path="products/:id" element={<ProductForm />} />
           <Route path="coupons" element={<Coupons />} />
+          <Route path="settings" element={<AdminSettings />} />
+          <Route path="categories" element={<Categories />} />
+          <Route path="customers" element={<Customers />} />
+          <Route path="staff" element={<Staff />} />
+          <Route path="print" element={<PrintSlips />} />
         </Route>
         <Route path="*" element={<NotFound />} />
       </Route>

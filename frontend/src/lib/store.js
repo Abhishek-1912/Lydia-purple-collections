@@ -2,17 +2,9 @@ import { useEffect, useState } from 'react'
 import { api } from './api.js'
 import { rupees, whatsappLink } from './config.js'
 
-const DEFAULT_RULES = { free_shipping_above: 1999, shipping_fee: 99, cod_fee: 49, cod_max_order: 15000, razorpay_enabled: false }
-let rulesPromise
+import { useSettings } from '../context/SettingsContext.jsx'
 
-export function useStoreRules() {
-  const [rules, setRules] = useState(DEFAULT_RULES)
-  useEffect(() => {
-    rulesPromise ||= api('/api/store-rules').catch(() => { rulesPromise = null; return DEFAULT_RULES })
-    rulesPromise.then(setRules)
-  }, [])
-  return rules
-}
+export const useStoreRules = useSettings
 
 export function useTitle(title, description) {
   useEffect(() => {

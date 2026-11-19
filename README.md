@@ -68,7 +68,7 @@ Refresh — an **Admin** button appears. Admin lives at `/admin`.
 | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` | Blank = online payment hidden, COD only |
 | `CORS_ORIGINS` | Comma-separated site URLs, e.g. `https://lydiapurple.in,https://www.lydiapurple.in` |
 | `FREE_SHIPPING_ABOVE` `SHIPPING_FEE` `COD_FEE` `COD_MAX_ORDER` `PAYMENT_TIMEOUT_MINUTES` | Store rules (₹1999 / ₹99 / ₹49 / ₹15000 / 30 min) |
-| `SHOP_PIN`, `DISPATCH_DAYS` | Shop's PIN and packing days, for delivery estimates |
+| `SHOP_PIN`, `DISPATCH_DAYS` | Defaults only — set these in **Admin → Settings** instead |
 | `RESEND_API_KEY`, `EMAIL_FROM`, `SHOP_EMAIL` | Order and contact emails. Blank = off |
 | `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_TEMPLATE_ORDER`, `WHATSAPP_TEMPLATE_SHIPPED`, `SHOP_WHATSAPP` | WhatsApp alerts. Blank = off |
 
@@ -79,7 +79,7 @@ Refresh — an **Admin** button appears. Admin lives at `/admin`.
 | `VITE_API_URL` | Railway URL, e.g. `https://lydia-api.up.railway.app` (no trailing slash) |
 | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` | For sign-in only |
 | `VITE_WHATSAPP_NUMBER` | Shop WhatsApp with country code, digits only: `919876543210` |
-| `VITE_SHOP_PHONE` `VITE_SHOP_EMAIL` `VITE_SHOP_ADDRESS` `VITE_SHOP_HOURS` `VITE_INSTAGRAM` | Shown on Contact page and footer |
+| `VITE_SHOP_PHONE` `VITE_SHOP_EMAIL` `VITE_SHOP_ADDRESS` `VITE_SHOP_HOURS` `VITE_INSTAGRAM` | Optional defaults — set real values in **Admin → Settings** |
 
 ## 5. Deploy
 
@@ -142,6 +142,17 @@ The WhatsApp buttons on the site (order, notify me, live video) work without any
 
 ## 8. Running the shop (admin)
 
+- **Settings** — shipping fee, free-shipping limit, COD fee/limit, shop PIN, WhatsApp, phone, email, address, hours,
+  Instagram and the announcement bar. Takes effect immediately; no redeploy. Blank contact fields are hidden on the site.
+- **Categories** — add, rename, reorder, show/hide (e.g. switch on Blouses). Slugs stay the same so links don't break.
+- **Customers** — everyone who ordered (grouped by phone): orders, total spent, last order, Block COD, WhatsApp.
+- **Staff** — make someone an admin by email (they must sign in on the site once first) or remove admin access.
+- **Dashboard charts** — sales per day (7/30/90 days), top products, orders by state, COD vs online.
+- **Packing slips** — Orders → *Print slips (to pack)* or *Print slip* on one order. Shows COD amount to collect.
+- **Stock / price** — quick edit straight from the Products list.
+- **Bulk photos** — Products → *Bulk photos*: name photos by SKU (`KAN-TB-PURPLE-1.jpg`, `-2`, `-3`) and upload all at once;
+  each is attached to the right product and colour. The sample Excel has a *Photo names* sheet listing every file name.
+
 - **Dashboard** — orders and sales today (IST), to pack, to ship, needs review, low stock (≤ 2).
 - **Orders** — search by LPC number, phone or name. Add courier + tracking → Mark packed → shipped → delivered.
   Cancel returns stock. "Needs review" = paid after the order expired; check stock by hand, then Mark reviewed.
@@ -154,7 +165,6 @@ The WhatsApp buttons on the site (order, notify me, live video) work without any
   Automatic limits: 6 orders per hour per connection, and at most 2 unshipped COD orders per phone.
 - **Download CSV** (Orders page) — every order, one row per item, for accounts/GST and courier booking.
 - **Coupons** — percent (with cap) or flat, minimum order, dates, usage limit. Codes are case-insensitive for shoppers.
-- **Hidden categories** — Blouses starts hidden. To show it: `update categories set is_active = true where slug = 'blouses';`
 
 ## 9. Sharing, search and stats
 
@@ -174,13 +184,13 @@ Covers pricing, coupons, COD limit, shipping-after-discount, delivery estimates,
 
 ## 11. Before launch checklist
 
-- [ ] Real shop phone, WhatsApp, email, address, hours in `frontend` variables
+- [ ] Real shop phone, WhatsApp, email, address, hours in **Admin → Settings**
 - [ ] Final store rules (shipping fee, free-shipping threshold, COD fee/limit) and `SHOP_PIN`
 - [ ] Return policy and Terms wording confirmed (`frontend/src/pages/Policies.jsx`, `Terms.jsx`; 48-hour window is a placeholder)
 - [ ] Domain verified in Resend; `EMAIL_FROM` and Supabase SMTP sender use it
 - [ ] Razorpay live keys + live webhook; one real ₹1 test order paid and refunded
 - [ ] End-to-end: one COD order (place → pack → ship with tracking → deliver) and one Razorpay test order
-- [ ] Remove sample data:
+- [x] Sample products and test orders removed (Nov 2026). If you ever re-run `seed.sql`, remove again with:
   ```sql
   delete from orders;                         -- test orders (also removes their items)
   delete from products where slug in ('kanjivaram-temple-border','banarasi-meenakari','soft-silk-daily',

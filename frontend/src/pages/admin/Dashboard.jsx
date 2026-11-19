@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuthedApi } from '../../context/AuthContext.jsx'
 import { rupees } from '../../lib/config.js'
+import Charts from './Charts.jsx'
 
 export default function Dashboard() {
   const call = useAuthedApi()
@@ -29,6 +30,7 @@ export default function Dashboard() {
           </Link>
         ))}
       </div>
+      <Charts />
       <h2 className="admin-h2">Low stock (2 or fewer)</h2>
       {s.low_stock.length ? (
         <ul className="low-list">

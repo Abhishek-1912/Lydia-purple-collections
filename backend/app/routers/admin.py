@@ -491,3 +491,241 @@ def update_coupon(cid: str, body: CouponIn):
 def delete_coupon(cid: str):
     get_db().table("coupons").delete().eq("id", cid).execute()
     return {"ok": True}
+
+
+# ───────────── store settings ─────────────
+@router.get("/settings")
+def get_store_settings():
+    from .. import store
+    return store.current()
+
+
+@router.put("/settings")
+def put_store_settings(body: dict):
+    from .. import store
+    clean = {}
+    for k, v in body.items():
+        if k in store.NUMBER_FIELDS:
+            lo, hi = store.NUMBER_FIELDS[k]
+            try:
+                n = int(v)
+            except (TypeError, ValueError):
+                raise HTTPException(400, f"{k.replace('_', ' ').capitalize()} must be a whole number.")
+            if not lo <= n <= hi:
+                raise HTTPException(400, f"{k.replace('_', ' ').capitalize()} must be between {lo} and {hi}.")
+            clean[k] = n
+        elif k in store.TEXT_FIELDS:
+            t = str(v or "").strip()[: store.TEXT_FIELDS[k]]
+            if k == "whatsapp" and t:
+                t = re.sub(r"\D", "", t)
+                if len(t) == 10:
+                    t = "91" + t
+                if not re.fullmatch(r"91[6-9]\d{9}", t):
+                    raise HTTPException(400, "WhatsApp number should be a 10-digit Indian mobile number.")
+            if k == "shop_pin" and t and not re.fullmatch(r"[1-9]\d{5}", t):
+                raise HTTPException(400, "Shop PIN must be 6 digits.")
+            if k == "email" and t and not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", t):
+                raise HTTPException(400, "Shop email doesn't look right.")
+            if k == "instagram" and t and not t.startswith("https://"):
+                raise HTTPException(400, "Instagram link must start with https://")
+            clean[k] = t
+    try:
+        return store.save(clean)
+    except Exception as e:
+        if "store_settings" in str(e):
+            raise HTTPException(500, "Settings table missing — run supabase/migrations/003_store_settings.sql.")
+        raise
+
+
+# ───────────── categories ─────────────
+class CategoryIn(BaseModel):
+    name: str = Field(min_length=2, max_length=60)
+    description: str | None = Field(default=None, max_length=200)
+    sort_order: int = 0
+    is_active: bool = True
+
+
+@router.get("/categories/all")
+def categories_with_counts():
+    db = get_db()
+    cats = db.table("categories").select("id,slug,name,description,sort_order,is_active").order("sort_order").execute().data
+    counts: dict[str, int] = {}
+    for p in db.table("products").select("category_id").execute().data:
+        counts[p["category_id"]] = counts.get(p["category_id"], 0) + 1
+    return [c | {"products": counts.get(c["id"], 0)} for c in cats]
+
+
+@router.post("/categories")
+def create_category(body: CategoryIn):
+    slug = slugify(body.name)
+    if get_db().table("categories").select("id").eq("slug", slug).execute().data:
+        raise HTTPException(400, "A category with this name already exists.")
+    return get_db().table("categories").insert(body.model_dump() | {"slug": slug}).execute().data[0]
+
+
+@router.put("/categories/{cid}")
+def update_category(cid: str, body: CategoryIn):
+    rows = get_db().table("categories").update(body.model_dump()).eq("id", cid).execute().data  # slug kept so links don't break
+    if not rows:
+        raise HTTPException(404, "Category not found.")
+    return rows[0]
+
+
+@router.delete("/categories/{cid}")
+def delete_category(cid: str):
+    db = get_db()
+    if db.table("products").select("id").eq("category_id", cid).limit(1).execute().data:
+        raise HTTPException(400, "This category still has products. Move or delete them first, or just hide the category.")
+    db.table("categories").delete().eq("id", cid).execute()
+    return {"ok": True}
+
+
+# ───────────── quick stock / price edit ─────────────
+class QuickVariant(BaseModel):
+    id: str
+    stock: int = Field(ge=0, le=100000)
+
+
+class QuickEditIn(BaseModel):
+    price: int | None = Field(default=None, gt=0)
+    mrp: int | None = Field(default=None, ge=0)   # 0 = remove MRP
+    variants: list[QuickVariant] = []
+
+
+@router.patch("/products/{pid}/quick")
+def quick_edit(pid: str, body: QuickEditIn):
+    db, p = get_db(), _product(pid)
+    price = body.price or p["price"]
+    mrp = p["mrp"] if body.mrp is None else (body.mrp or None)
+    if mrp and mrp < price:
+        raise HTTPException(400, "MRP can't be lower than the price.")
+    if body.price is not None or body.mrp is not None:
+        db.table("products").update({"price": price, "mrp": mrp}).eq("id", pid).execute()
+    own = {v["id"] for v in p["variants"]}
+    for v in body.variants:
+        if v.id in own:
+            db.table("product_variants").update({"stock": v.stock}).eq("id", v.id).execute()
+    return _product(pid)
+
+
+# ───────────── photos by file name (SKU) ─────────────
+@router.post("/images/by-sku")
+async def upload_by_sku(file: UploadFile = File(...)):
+    """File name = SKU, optionally followed by -1, -2… e.g. KPP-MAG-1.jpg → variant with SKU KPP-MAG."""
+    name = (file.filename or "").rsplit("/", 1)[-1]
+    stem = re.sub(r"\.(jpe?g|png|webp)$", "", name, flags=re.I)
+    if stem == name:
+        raise HTTPException(400, f"{name}: only JPG, PNG or WebP photos.")
+    db = get_db()
+    candidates = [stem, re.sub(r"[-_ ](\d{1,2})$", "", stem)]
+    variant = None
+    for sku in candidates:
+        literal = sku.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")  # match SKU exactly (case-insensitive)
+        rows = db.table("product_variants").select("id,sku,color,product_id").ilike("sku", literal).limit(1).execute().data
+        if rows:
+            variant = rows[0]
+            break
+    if not variant:
+        raise HTTPException(404, f"{name}: no product has SKU '{candidates[-1]}'.")
+    data = await file.read(MAX_IMAGE + 1)
+    colors = {v["color"] for v in db.table("product_variants").select("color").eq("product_id", variant["product_id"]).execute().data}
+    img = store_image(variant["product_id"], data, variant["color"] if len(colors) > 1 else None)
+    prod = db.table("products").select("name").eq("id", variant["product_id"]).execute().data[0]
+    return {"file": name, "sku": variant["sku"], "product": prod["name"], "color": img["color"], "url": img["url"]}
+
+
+# ───────────── sales charts ─────────────
+@router.get("/stats/charts")
+def stats_charts(days: int = 30):
+    days = max(7, min(days, 90))
+    db = get_db()
+    today = datetime.now(IST).date()
+    start = datetime.combine(today - timedelta(days=days - 1), datetime.min.time(), IST).astimezone(timezone.utc).isoformat()
+    orders = (db.table("orders").select("created_at,total,status,payment_method,address,order_items(name,qty,price)")
+              .gte("created_at", start).execute().data)
+    live = [o for o in orders if o["status"] not in ("cancelled", "pending_payment")]
+    by_day = {(today - timedelta(days=i)).isoformat(): {"orders": 0, "sales": 0} for i in range(days)}
+    products: dict[str, dict] = {}
+    states: dict[str, int] = {}
+    pay = {"cod": 0, "razorpay": 0}
+    for o in live:
+        d = datetime.fromisoformat(o["created_at"]).astimezone(IST).date().isoformat()
+        if d in by_day:
+            by_day[d]["orders"] += 1
+            by_day[d]["sales"] += o["total"]
+        pay[o["payment_method"]] = pay.get(o["payment_method"], 0) + 1
+        st = (o.get("address") or {}).get("state") or "Unknown"
+        states[st] = states.get(st, 0) + 1
+        for it in o["order_items"]:
+            r = products.setdefault(it["name"], {"name": it["name"], "qty": 0, "sales": 0})
+            r["qty"] += it["qty"]
+            r["sales"] += it["qty"] * it["price"]
+    return {
+        "days": [{"date": k} | v for k, v in sorted(by_day.items())],
+        "total_sales": sum(o["total"] for o in live),
+        "total_orders": len(live),
+        "avg_order": round(sum(o["total"] for o in live) / len(live)) if live else 0,
+        "payment": pay,
+        "top_products": sorted(products.values(), key=lambda r: -r["sales"])[:8],
+        "states": sorted(({"state": k, "orders": v} for k, v in states.items()), key=lambda r: -r["orders"])[:8],
+        "cancelled": sum(o["status"] == "cancelled" for o in orders),
+    }
+
+
+# ───────────── customers ─────────────
+@router.get("/customers")
+def customers(q: str | None = None):
+    db = get_db()
+    rows, start = [], 0
+    while True:
+        batch = (db.table("orders").select("phone,customer_name,email,total,status,created_at,user_id,address")
+                 .order("created_at", desc=True).range(start, start + 999).execute().data)
+        rows += batch
+        if len(batch) < 1000:
+            break
+        start += 1000
+    people: dict[str, dict] = {}
+    for o in rows:  # newest first → first seen = latest name/email/city
+        c = people.setdefault(o["phone"], {"phone": o["phone"], "name": o["customer_name"], "email": o["email"],
+                                           "city": (o.get("address") or {}).get("city"), "orders": 0, "spent": 0,
+                                           "cancelled": 0, "last_order": o["created_at"], "has_account": False})
+        if o["status"] == "cancelled":
+            c["cancelled"] += 1
+        elif o["status"] != "pending_payment":
+            c["orders"] += 1
+            c["spent"] += o["total"]
+        c["has_account"] = c["has_account"] or bool(o["user_id"])
+        c["email"] = c["email"] or o["email"]
+    blocked = {r["phone"] for r in db.table("blocked_phones").select("phone").execute().data}
+    out = [c | {"cod_blocked": c["phone"] in blocked} for c in people.values()]
+    if q and q.strip():
+        t = q.strip().lower()
+        out = [c for c in out if t in (c["name"] or "").lower() or t in c["phone"] or t in (c["email"] or "").lower()]
+    return sorted(out, key=lambda c: -c["spent"])
+
+
+# ───────────── staff / admins ─────────────
+class StaffIn(BaseModel):
+    email: str = Field(pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+    admin: bool
+
+
+@router.get("/staff")
+def staff():
+    return get_db().table("profiles").select("id,email,full_name,role,created_at").eq("role", "admin").order("created_at").execute().data
+
+
+@router.put("/staff")
+def set_staff(body: StaffIn, me: dict = Depends(require_admin)):
+    db = get_db()
+    rows = db.table("profiles").select("id,email,role").ilike("email", body.email.strip()).limit(1).execute().data
+    if not rows:
+        raise HTTPException(404, "No account with this email yet. Ask them to sign in on the website once, then try again.")
+    p = rows[0]
+    if not body.admin:
+        if p["id"] == me["id"]:
+            raise HTTPException(400, "You can't remove your own admin access.")
+        if len(staff()) <= 1:
+            raise HTTPException(400, "There must be at least one admin.")
+    db.table("profiles").update({"role": "admin" if body.admin else "customer"}).eq("id", p["id"]).execute()
+    return staff()

@@ -9,6 +9,7 @@ import httpx
 from .config import get_settings
 from .db import get_db
 from .pricing import inr
+from . import store
 
 log = logging.getLogger("notify")
 ORDER_FIELDS = ("id,order_no,customer_name,phone,email,address,subtotal,shipping_fee,cod_fee,discount,total,"
@@ -110,14 +111,16 @@ def order_confirmed(order_id: str) -> None:
             send_email(o["email"], f"Order {no} confirmed — Lydia Purple Collections", _wrap(
                 f"Thank you, {o['customer_name']}!",
                 f"<p>Your order <b>{no}</b> is confirmed ({_pay_label(o)}). We'll message you when it ships.</p>{table}"),
-                reply_to=s.shop_email or None)
-        if s.shop_email:
-            send_email(s.shop_email, f"🛍️ New order {no} — {inr(o['total'])} ({_pay_label(o)})",
+                reply_to=store.current()["email"] or s.shop_email or None)
+        shop_email = store.current()["email"] or s.shop_email
+        if shop_email:
+            send_email(shop_email, f"🛍️ New order {no} — {inr(o['total'])} ({_pay_label(o)})",
                        _wrap(f"New order {no}", table))
         params = [o["customer_name"], no, inr(o["total"]), _pay_label(o)]
         send_whatsapp(o["phone"], s.whatsapp_template_order, params)
-        if s.shop_whatsapp:
-            send_whatsapp(s.shop_whatsapp, s.whatsapp_template_order, params)
+        shop_wa = store.current()["whatsapp"] or s.shop_whatsapp
+        if shop_wa:
+            send_whatsapp(shop_wa, s.whatsapp_template_order, params)
     except Exception:
         log.exception("order_confirmed failed for %s", order_id)
 
@@ -144,7 +147,7 @@ def order_shipped(order_id: str) -> None:
 def contact_message(name: str, phone: str, email: str | None, message: str) -> bool:
     s = get_settings()
     e = html.escape
-    return send_email(s.shop_email, f"Website enquiry from {name}", _wrap(
+    return send_email(store.current()["email"] or s.shop_email, f"Website enquiry from {name}", _wrap(
         "New message from the website",
         f"<p><b>Name:</b> {e(name)}<br><b>Phone:</b> {e(phone)}<br><b>Email:</b> {e(email or '-')}</p>"
         f"<p style='white-space:pre-wrap'>{e(message)}</p>"), reply_to=email or None)
