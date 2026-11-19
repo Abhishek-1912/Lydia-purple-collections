@@ -4,6 +4,7 @@ import ProductImage from './ProductImage.jsx'
 import { WhatsAppIcon } from './Icons.jsx'
 import WishButton from './WishButton.jsx'
 import Stars from './Stars.jsx'
+import { track } from '../lib/track.js'
 import { useCart } from '../context/CartContext.jsx'
 import { rupees } from '../lib/config.js'
 import { productWhatsApp } from '../lib/store.js'
@@ -17,6 +18,7 @@ export default function ProductCard({ product: p }) {
 
   function addSingle() {
     add({ variant_id: single.id, name: p.name, slug: p.slug, color: single.color, size: single.size, price: p.price, image: firstImg?.url || null })
+    track('cart', p.id)
     setAdded(true)
     setTimeout(() => setAdded(false), 1500)
   }

@@ -30,6 +30,8 @@ const EasyAdd = lazy(() => import('./pages/admin/EasyAdd.jsx'))
 const AdminReviews = lazy(() => import('./pages/admin/AdminReviews.jsx'))
 const Abandoned = lazy(() => import('./pages/admin/Abandoned.jsx'))
 const VideoCalls = lazy(() => import('./pages/admin/VideoCalls.jsx'))
+const GiftCards = lazy(() => import('./pages/admin/GiftCards.jsx'))
+const Analytics = lazy(() => import('./pages/admin/Analytics.jsx'))
 import NotFound from './pages/NotFound.jsx'
 
 export default function App() {
@@ -71,6 +73,8 @@ export default function App() {
           <Route path="abandoned" element={<Abandoned />} />
           <Route path="invoice/:id" element={<Invoice admin />} />
           <Route path="calls" element={<VideoCalls />} />
+          <Route path="gift-cards" element={<GiftCards />} />
+          <Route path="analytics" element={<Analytics />} />
         </Route>
         <Route path="*" element={<NotFound />} />
       </Route>

@@ -12,6 +12,7 @@ class QuoteIn(BaseModel):
     items: list[CartItem] = Field(max_length=50)
     coupon_code: str | None = Field(default=None, max_length=40)
     payment_method: Literal["razorpay", "cod"] | None = None
+    gift_code: str | None = Field(default=None, max_length=40)
 
 
 INDIAN_STATES = [
@@ -49,6 +50,7 @@ class OrderIn(BaseModel):
     coupon_code: str | None = Field(default=None, max_length=40)
     payment_method: Literal["razorpay", "cod"]
     session_id: str | None = Field(default=None, max_length=64)   # links the abandoned-checkout draft
+    gift_code: str | None = Field(default=None, max_length=40)
 
 
 class VerifyIn(BaseModel):

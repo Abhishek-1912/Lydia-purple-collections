@@ -51,7 +51,7 @@ function OrderRow({ o, onChange, onPhoneBlocked }) {
         <span className="order-no">{orderNo(o.order_no)}</span>
         <span className="order-who">{o.customer_name}<small> · {when}</small></span>
         <span className={`pill pill-${o.status}`}>{STATUS_LABEL[o.status]}{o.cod_blocked && ' · COD blocked'}</span>
-        <span className="order-total">{rupees(o.total)}<small>{o.payment_method === 'cod' ? ' COD' : ''}</small></span>
+        <span className="order-total">{rupees(o.total)}<small>{o.payment_method === 'cod' ? ' COD' : o.payment_method === 'gift' ? ' 🎁' : ''}</small></span>
       </button>
       {open && (
         <div className="order-detail">
@@ -69,6 +69,7 @@ function OrderRow({ o, onChange, onPhoneBlocked }) {
                 {o.order_items.map((it, i) => <li key={i}>{it.name}{(it.color || it.size) && ` (${[it.color, it.size].filter(Boolean).join(' / ')})`} × {it.qty} — {rupees(it.price * it.qty)}</li>)}
               </ul>
               <p className="small">Subtotal {rupees(o.subtotal)}{o.discount ? ` · Discount −${rupees(o.discount)} (${o.coupon_code})` : ''} · Shipping {rupees(o.shipping_fee)}{o.cod_fee ? ` · COD ${rupees(o.cod_fee)}` : ''}</p>
+              {o.gift_amount > 0 && <p className="small">🎁 Gift card {o.gift_code}: −{rupees(o.gift_amount)}{o.payment_method === 'cod' && <> · <strong>collect {rupees(o.total - o.gift_amount)}</strong></>}</p>}
               <p className="small">Payment: <strong>{PAYMENT_LABEL[o.payment_status]}</strong>{o.razorpay_payment_id && <> · {o.razorpay_payment_id}</>}</p>
             </div>
           </div>

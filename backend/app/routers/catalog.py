@@ -87,7 +87,7 @@ def delivery_estimate(pin: str):
 
 @router.post("/cart/quote")
 def cart_quote(body: QuoteIn):
-    return services.quote([i.model_dump() for i in body.items], body.coupon_code, body.payment_method)
+    return services.quote([i.model_dump() for i in body.items], body.coupon_code, body.payment_method, body.gift_code)
 
 
 @router.get("/store-rules")

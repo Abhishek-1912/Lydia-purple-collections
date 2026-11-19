@@ -27,7 +27,7 @@ router = APIRouter(prefix="/api", tags=["checkout"])
 
 PUBLIC_ORDER = (
     "id,order_no,customer_name,phone,email,address,subtotal,shipping_fee,cod_fee,discount,total,"
-    "coupon_code,payment_method,payment_status,status,courier,tracking_number,created_at,razorpay_order_id,"
+    "coupon_code,payment_method,payment_status,status,courier,tracking_number,created_at,razorpay_order_id,gift_amount,gift_code,"
     "order_items(name,color,size,image_url,price,qty,product_id)"
 )
 
@@ -65,22 +65,24 @@ def create_order(body: OrderIn, request: Request, background: BackgroundTasks, u
     if not order_limiter.allow(client_ip(request)):
         raise HTTPException(429, "Too many orders from this connection. Please wait a while or message us on WhatsApp.")
     release_expired()
-    if body.payment_method == "cod":
-        refusal = cod_check(body.phone)
-        if refusal:
-            raise HTTPException(400, {"message": refusal, "code": "COD_REFUSED"})
 
-    if body.payment_method == "razorpay" and not s.razorpay_enabled:
+    q = services.quote([i.model_dump() for i in body.items], body.coupon_code, body.payment_method, body.gift_code)
+    method = "gift" if q.get("full_gift") else body.payment_method
+    if method == "razorpay" and not s.razorpay_enabled:
         raise HTTPException(400, "Online payment isn't available right now. Please choose Cash on Delivery.")
-
-    q = services.quote([i.model_dump() for i in body.items], body.coupon_code, body.payment_method)
     if not q["ok"]:
         bad = next((l for l in q["lines"] if l.get("error")), None)
         raise HTTPException(409, {"message": (f"{bad.get('name', 'An item')}: {bad['error']}" if bad
                                               else "Your cart has changed. Please review it."), "code": "CART_CHANGED"})
     if q["coupon"] and not q["coupon"]["ok"]:
         raise HTTPException(400, {"message": q["coupon"]["message"], "code": "COUPON"})
-    if body.payment_method == "cod" and not q["cod_allowed"]:
+    if q.get("gift") and not q["gift"]["ok"]:
+        raise HTTPException(400, {"message": q["gift"]["message"], "code": "GIFT"})
+    if method == "cod":
+        refusal = cod_check(body.phone)   # blocked numbers / too many unshipped COD orders
+        if refusal:
+            raise HTTPException(400, {"message": refusal, "code": "COD_REFUSED"})
+    if method == "cod" and not q["cod_allowed"]:
         raise HTTPException(400, {"message": q["cod_message"], "code": "COD_LIMIT"})
 
     order = {
@@ -92,7 +94,9 @@ def create_order(body: OrderIn, request: Request, background: BackgroundTasks, u
         "subtotal": q["subtotal"], "shipping_fee": q["shipping_fee"], "cod_fee": q["cod_fee"],
         "discount": q["discount"], "total": q["total"],
         "coupon_code": q["coupon"]["code"] if q["coupon"] else None,
-        "payment_method": body.payment_method,
+        "payment_method": method,
+        "gift_code": q["gift"]["code"] if q.get("gift") else None,
+        "gift_amount": q.get("gift_amount", 0),
     }
     items = [{k: l[k] for k in ("variant_id", "product_id", "name", "color", "size", "price", "qty")}
              | {"image_url": l["image"]} for l in q["lines"]]
@@ -104,6 +108,8 @@ def create_order(body: OrderIn, request: Request, background: BackgroundTasks, u
         if "OUT_OF_STOCK" in msg:
             raise HTTPException(409, {"message": "Sorry, an item in your cart just sold out. Please review your cart.",
                                       "code": "OUT_OF_STOCK"})
+        if "GIFT_LOW" in msg:
+            raise HTTPException(400, {"message": "Your gift card balance just changed. Please apply it again.", "code": "GIFT"})
         if "COUPON_LIMIT" in msg:
             raise HTTPException(400, {"message": "This coupon has just been fully used.", "code": "COUPON"})
         log.exception("place_order failed")
@@ -112,14 +118,16 @@ def create_order(body: OrderIn, request: Request, background: BackgroundTasks, u
     order_id, order_no = placed["id"], placed["order_no"]
     from .drafts import mark_converted
     mark_converted(body.session_id, order_id)
-    result = {"id": order_id, "order_no": order_no, "payment_method": body.payment_method, "total": q["total"]}
+    from .analytics import record_order
+    record_order(body.session_id)
+    result = {"id": order_id, "order_no": order_no, "payment_method": method, "total": q["total"], "due": q["due"]}
 
-    if body.payment_method == "cod":
+    if method in ("cod", "gift"):
         background.add_task(notify.order_confirmed, order_id)
         return result
 
     try:
-        rp = razorpay_client.create_order(q["total"], f"LPC{order_no}", {"order_id": order_id})
+        rp = razorpay_client.create_order(q["due"], f"LPC{order_no}", {"order_id": order_id})
     except Exception:
         log.exception("Razorpay create_order failed")
         _cancel_unpaid(order_id)

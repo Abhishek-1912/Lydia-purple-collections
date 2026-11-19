@@ -54,7 +54,9 @@ export default function OrderConfirmation() {
         {o.discount > 0 && <div className="sum-row save"><span>Discount{o.coupon_code && ` (${o.coupon_code})`}</span><span>−{rupees(o.discount)}</span></div>}
         <div className="sum-row"><span>Shipping</span><span>{o.shipping_fee ? rupees(o.shipping_fee) : 'Free'}</span></div>
         {o.cod_fee > 0 && <div className="sum-row"><span>COD handling</span><span>{rupees(o.cod_fee)}</span></div>}
-        <div className="sum-row total"><span>{o.payment_method === 'cod' ? 'To pay on delivery' : 'Total'}</span><span>{rupees(o.total)}</span></div>
+        <div className="sum-row total"><span>Total</span><span>{rupees(o.total)}</span></div>
+        {o.gift_amount > 0 && <div className="sum-row save"><span>Paid by gift card</span><span>−{rupees(o.gift_amount)}</span></div>}
+        {o.payment_method === 'cod' && <div className="sum-row total"><span>To pay on delivery</span><span>{rupees(o.total - (o.gift_amount || 0))}</span></div>}
         <p className="small muted">Delivering to {o.customer_name}, {[a.line1, a.line2, a.landmark, a.city, a.state].filter(Boolean).join(', ')} – {a.pin}. Phone +91 {o.phone}</p>
       </div>
 

@@ -7,6 +7,7 @@ import { rupees, SHOP_NAME } from '../lib/config.js'
 import { STATES } from '../lib/india.js'
 import { loadRazorpay } from '../lib/razorpay.js'
 import { sessionId } from '../lib/session.js'
+import { track } from '../lib/track.js'
 import { lineLabel, useStoreRules, useTitle } from '../lib/store.js'
 
 const SAVED = 'lpc_checkout_v1'
@@ -50,10 +51,14 @@ export default function Checkout() {
   const [method, setMethod] = useState('')
   const [couponInput, setCouponInput] = useState('')
   const [coupon, setCoupon] = useState('')
+  const [gift, setGift] = useState('')
+  const [giftInput, setGiftInput] = useState('')
+  const [giftOpen, setGiftOpen] = useState(false)
   const [quote, setQuote] = useState(null)
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState('')
   const placing = useRef(false)
+  useEffect(() => { if (items.length) track('checkout') }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fill blanks from the signed-in profile (saved browser address wins)
   useEffect(() => {
@@ -86,10 +91,10 @@ export default function Checkout() {
 
   useEffect(() => {
     if (!items.length) return
-    api('/api/cart/quote', { method: 'POST', body: { items: items.map(({ variant_id, qty }) => ({ variant_id, qty })), coupon_code: coupon || null, payment_method: payMethod } })
+    api('/api/cart/quote', { method: 'POST', body: { items: items.map(({ variant_id, qty }) => ({ variant_id, qty })), coupon_code: coupon || null, payment_method: payMethod, gift_code: gift || null } })
       .then(setQuote)
       .catch((e) => setNotice(e.message))
-  }, [key, coupon, payMethod])
+  }, [key, coupon, payMethod, gift])
 
   // If COD is over the limit, switch to online when possible
   useEffect(() => {
@@ -129,6 +134,7 @@ export default function Checkout() {
       return
     }
     if (quote?.coupon && !quote.coupon.ok) { setNotice('Please remove the coupon that can’t be applied.'); return }
+    if (quote?.gift && !quote.gift.ok) { setNotice('Please remove the gift card that can’t be used.'); return }
     try { localStorage.setItem(SAVED, JSON.stringify(form)) } catch { /* ignore */ }
 
     setBusy(true)
@@ -139,6 +145,7 @@ export default function Checkout() {
       coupon_code: coupon || null,
       payment_method: payMethod,
       session_id: sessionId(),
+      gift_code: gift || null,
     }
     let order
     try {
@@ -150,7 +157,7 @@ export default function Checkout() {
       return
     }
 
-    if (order.payment_method === 'cod') {
+    if (order.payment_method === 'cod' || order.payment_method === 'gift') {
       placing.current = true
       clear()
       navigate(`/order/${order.id}`, { replace: true })
@@ -241,6 +248,7 @@ export default function Checkout() {
 
           <fieldset className="card">
             <legend>Payment</legend>
+            {quote?.full_gift ? <p className="alert alert-ok">🎁 Your gift card covers the whole order — nothing to pay.</p> : <>
             {rules.razorpay_enabled && (
               <label className={`pay-option ${payMethod === 'razorpay' ? 'active' : ''}`}>
                 <input type="radio" name="pay" checked={payMethod === 'razorpay'} onChange={() => setMethod('razorpay')} />
@@ -251,6 +259,7 @@ export default function Checkout() {
               <input type="radio" name="pay" checked={payMethod === 'cod'} disabled={codBlocked} onChange={() => setMethod('cod')} />
               <span><strong>Cash on Delivery</strong><small>{codBlocked ? quote.cod_message : `+ ${rupees(rules.cod_fee)} handling fee`}</small></span>
             </label>
+            </>}
           </fieldset>
         </div>
 
@@ -282,6 +291,23 @@ export default function Checkout() {
             )}
           </div>
 
+          <div className="coupon">
+            {gift ? (
+              <div className={`coupon-applied ${quote?.gift?.ok ? 'ok' : 'bad'}`} role="status">
+                <span>🎁 <strong>{gift}</strong> — {quote?.gift?.message || 'Checking…'}</span>
+                <button type="button" className="link-btn" onClick={() => { setGift(''); setGiftInput('') }}>Remove</button>
+              </div>
+            ) : giftOpen ? (
+              <div className="coupon-form">
+                <label htmlFor="gift" className="sr-only">Gift card code</label>
+                <input id="gift" type="text" placeholder="Gift card code (LPC-XXXX-XXXX)" value={giftInput}
+                  onChange={(e) => setGiftInput(e.target.value.toUpperCase())}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); setGift(giftInput.trim()) } }} />
+                <button type="button" className="btn btn-outline btn-sm" onClick={() => setGift(giftInput.trim())} disabled={!giftInput.trim()}>Apply</button>
+              </div>
+            ) : <button type="button" className="link-btn" onClick={() => setGiftOpen(true)}>🎁 Have a gift card?</button>}
+          </div>
+
           {quote && (
             <>
               <div className="sum-row"><span>Subtotal</span><span>{rupees(quote.subtotal)}</span></div>
@@ -289,12 +315,14 @@ export default function Checkout() {
               <div className="sum-row"><span>Shipping</span><span>{quote.shipping_fee ? rupees(quote.shipping_fee) : 'Free'}</span></div>
               {quote.cod_fee > 0 && <div className="sum-row"><span>COD handling</span><span>{rupees(quote.cod_fee)}</span></div>}
               <div className="sum-row total"><span>Total</span><span>{rupees(quote.total)}</span></div>
+              {quote.gift_amount > 0 && <div className="sum-row save"><span>Gift card</span><span>−{rupees(quote.gift_amount)}</span></div>}
+              {quote.gift_amount > 0 && <div className="sum-row total"><span>To pay</span><span>{rupees(quote.due)}</span></div>}
             </>
           )}
 
           {notice && <p className="alert alert-error" role="alert">{notice}</p>}
           <button className="btn btn-primary btn-block" type="submit" disabled={busy || !quote?.ok}>
-            {busy ? 'Please wait…' : payMethod === 'cod' ? `Place order${quote ? ` · ${rupees(quote.total)}` : ''}` : `Pay${quote ? ` ${rupees(quote.total)}` : ''}`}
+            {busy ? 'Please wait…' : quote?.full_gift ? 'Place order · paid by gift card' : payMethod === 'cod' ? `Place order${quote ? ` · ${rupees(quote.due ?? quote.total)}` : ''}` : `Pay${quote ? ` ${rupees(quote.due ?? quote.total)}` : ''}`}
           </button>
           {quote && !quote.ok && <p className="small line-error">Some items changed. <Link to="/cart">Review your cart</Link>.</p>}
           <p className="small muted center">Prices include GST. Secure payments by Razorpay.</p>

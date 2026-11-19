@@ -319,7 +319,7 @@ async def import_products(file: UploadFile = File(...), dry_run: bool = Form(Tru
 # ───────────── orders ─────────────
 ORDER_FIELDS = ("id,order_no,user_id,customer_name,phone,email,address,subtotal,shipping_fee,cod_fee,discount,total,"
                 "coupon_code,payment_method,payment_status,status,razorpay_order_id,razorpay_payment_id,courier,"
-                "tracking_number,needs_review,stock_released,paid_at,shipped_at,delivered_at,created_at,"
+                "tracking_number,needs_review,stock_released,paid_at,shipped_at,delivered_at,created_at,gift_code,gift_amount,"
                 "order_items(name,color,size,image_url,price,qty)")
 
 
@@ -386,7 +386,7 @@ def export_orders(status: str | None = None):
     w.writerow(["Order", "Date (IST)", "Status", "Payment method", "Payment status", "Razorpay payment ID",
                 "Customer", "Phone", "Email", "Address", "City", "State", "PIN",
                 "Item", "Colour", "Size", "Qty", "Unit price", "Line total",
-                "Subtotal", "Discount", "Coupon", "Shipping", "COD fee", "Order total", "Courier", "Tracking"])
+                "Subtotal", "Discount", "Coupon", "Shipping", "COD fee", "Order total", "Gift card", "Amount due", "Courier", "Tracking"])
     for o in rows:
         a = o["address"] or {}
         when = datetime.fromisoformat(o["created_at"]).astimezone(IST).strftime("%Y-%m-%d %H:%M")
@@ -400,6 +400,7 @@ def export_orders(status: str | None = None):
                         it.get("price", ""), (it.get("price") or 0) * (it.get("qty") or 0),
                         o["subtotal"] if first else "", o["discount"] if first else "", (o["coupon_code"] or "") if first else "",
                         o["shipping_fee"] if first else "", o["cod_fee"] if first else "", o["total"] if first else "",
+                        (o.get("gift_amount") or 0) if first else "", (o["total"] - (o.get("gift_amount") or 0)) if first else "",
                         o.get("courier") or "", o.get("tracking_number") or ""])
     return Response("\ufeff" + out.getvalue(), media_type="text/csv; charset=utf-8",
                     headers={"Content-Disposition": 'attachment; filename="orders.csv"'})

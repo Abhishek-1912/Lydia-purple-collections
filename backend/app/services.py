@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 
 from .config import get_settings
 from .db import get_db
-from .pricing import MAX_QTY, Rules, coupon_discount, totals
+from .pricing import MAX_QTY, Rules, apply_gift, coupon_discount, gift_card_problem, totals
 
 PRODUCT_SELECT = (
     "id,slug,name,description,fabric,care,category_id,price,mrp,is_bridal,is_new,is_clearance,is_active,"
@@ -102,7 +102,19 @@ def get_coupon(code: str) -> dict | None:
     return c
 
 
-def quote(items: list[dict], coupon_code: str | None, payment_method: str | None) -> dict:
+def get_gift(code: str) -> dict | None:
+    try:
+        rows = get_db().table("gift_cards").select("*").eq("code", code.strip().upper()).limit(1).execute().data
+    except Exception:
+        return None
+    if not rows:
+        return None
+    g = rows[0]
+    g["expires_at"] = _ts(g.get("expires_at"))
+    return g
+
+
+def quote(items: list[dict], coupon_code: str | None, payment_method: str | None, gift_code: str | None = None) -> dict:
     """Re-price a cart from the database. items: [{variant_id, qty}]."""
     merged: dict[str, int] = {}
     for it in items:
@@ -152,5 +164,17 @@ def quote(items: list[dict], coupon_code: str | None, payment_method: str | None
         discount, err = coupon_discount(get_coupon(code), subtotal, datetime.now(timezone.utc))
         coupon = {"code": code, "ok": err is None, "message": err or f"{code} applied."}
 
-    return {"lines": lines, "ok": ok and bool(lines), "coupon": coupon,
-            **totals(subtotal, discount, payment_method, rules())}
+    money = totals(subtotal, discount, payment_method, rules()) | {"gift_amount": 0, "full_gift": False}
+    gift = None
+    if gift_code and gift_code.strip():
+        code = gift_code.strip().upper()
+        card = get_gift(code)
+        problem = gift_card_problem(card, datetime.now(timezone.utc))
+        if problem:
+            gift = {"code": code, "ok": False, "message": problem}
+        else:
+            money = money | apply_gift(subtotal, discount, payment_method, int(card["balance"]), rules())
+            gift = {"code": code, "ok": True, "balance": card["balance"],
+                    "message": f"₹{money['gift_amount']:,} paid by gift card" + (" — nothing left to pay." if money["full_gift"] else ".")}
+    money.setdefault("due", money["total"] - money["gift_amount"])
+    return {"lines": lines, "ok": ok and bool(lines), "coupon": coupon, "gift": gift, **money}

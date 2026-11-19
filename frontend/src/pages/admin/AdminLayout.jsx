@@ -37,6 +37,8 @@ export default function AdminLayout() {
           <NavLink to="/admin/reviews">Reviews</NavLink>
           <NavLink to="/admin/calls">Video calls</NavLink>
           <NavLink to="/admin/coupons">Coupons</NavLink>
+          <NavLink to="/admin/gift-cards">Gift cards</NavLink>
+          <NavLink to="/admin/analytics">Analytics</NavLink>
           <NavLink to="/admin/categories">Categories</NavLink>
           <NavLink to="/admin/settings">Settings</NavLink>
           <NavLink to="/admin/staff">Staff</NavLink>

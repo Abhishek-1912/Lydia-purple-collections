@@ -75,3 +75,31 @@ def totals(subtotal: int, discount: int, payment_method: str | None, rules: Rule
         else f"Cash on Delivery is available up to {inr(rules.cod_max_order)}. Please pay online for this order.",
         "free_shipping_remaining": max(0, rules.free_shipping_above - after) if subtotal else rules.free_shipping_above,
     }
+
+
+def gift_card_problem(card: dict | None, now: datetime) -> str | None:
+    if not card:
+        return "This gift card code doesn't exist."
+    if not card.get("is_active"):
+        return "This gift card is no longer active."
+    if card.get("expires_at") and now > card["expires_at"]:
+        return "This gift card has expired."
+    if int(card.get("balance") or 0) <= 0:
+        return "This gift card has no balance left."
+    return None
+
+
+def apply_gift(subtotal: int, discount: int, payment_method: str | None, balance: int, rules: Rules) -> dict:
+    """Gift card = payment (the order total stays the same, so invoices are right).
+    If it covers everything, there is no COD fee and nothing left to pay (method 'gift')."""
+    no_cod = totals(subtotal, discount, None, rules)
+    if balance >= no_cod["total"] and no_cod["total"] > 0:
+        return no_cod | {"gift_amount": no_cod["total"], "due": 0, "full_gift": True,
+                         "cod_allowed": False, "cod_message": None}
+    t = totals(subtotal, discount, payment_method, rules)
+    gift = min(max(balance, 0), t["total"])
+    due = t["total"] - gift
+    cod_due = no_cod["total"] - gift + rules.cod_fee
+    cod_ok = subtotal > 0 and cod_due <= rules.cod_max_order
+    return t | {"gift_amount": gift, "due": due, "full_gift": False, "cod_allowed": cod_ok,
+                "cod_message": None if cod_ok else f"Cash on Delivery is available up to {inr(rules.cod_max_order)}. Please pay online for this order."}

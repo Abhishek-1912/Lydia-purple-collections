@@ -35,6 +35,7 @@ export default function PrintSlips() {
         {orders.map((o) => {
           const a = o.address || {}
           const cod = o.payment_method === 'cod' && o.payment_status !== 'paid'
+          const collect = o.total - (o.gift_amount || 0)
           return (
             <article key={o.id} className="slip">
               <header className="slip-head">
@@ -45,7 +46,7 @@ export default function PrintSlips() {
                 <small>SHIP TO</small>
                 <p><strong>{o.customer_name}</strong><br />{a.line1}{a.line2 && <>, {a.line2}</>}<br />{a.landmark && <>Near {a.landmark}<br /></>}{a.city}, {a.state} – <strong>{a.pin}</strong><br />Phone: +91 {o.phone}</p>
               </div>
-              <div className={`slip-pay ${cod ? 'cod' : ''}`}>{cod ? `CASH ON DELIVERY — COLLECT ${rupees(o.total)}` : 'PREPAID — DO NOT COLLECT CASH'}</div>
+              <div className={`slip-pay ${cod ? 'cod' : ''}`}>{cod ? `CASH ON DELIVERY — COLLECT ${rupees(collect)}` : 'PREPAID — DO NOT COLLECT CASH'}</div>
               <table className="slip-items">
                 <thead><tr><th>Item</th><th>Colour / size</th><th>Qty</th><th>✓</th></tr></thead>
                 <tbody>{o.order_items.map((it, i) => <tr key={i}><td>{it.name}</td><td>{[it.color, it.size].filter(Boolean).join(' / ') || '—'}</td><td>{it.qty}</td><td>☐</td></tr>)}</tbody>

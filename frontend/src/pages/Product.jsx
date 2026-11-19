@@ -12,6 +12,7 @@ import Gallery from '../components/Gallery.jsx'
 import Reviews from '../components/Reviews.jsx'
 import WishButton from '../components/WishButton.jsx'
 import Stars from '../components/Stars.jsx'
+import { track } from '../lib/track.js'
 import { swatchBg } from '../lib/shades.js'
 
 export default function Product() {
@@ -32,6 +33,7 @@ export default function Product() {
     api(`/api/products/${slug}`)
       .then((d) => {
         setP(d)
+        track('view', d.id)
         const firstInStock = d.variants.find((v) => v.stock > 0) || d.variants[0]
         setColor(firstInStock?.color || '')
         setSize(d.sizes.length ? (firstInStock?.size || '') : '')
@@ -79,6 +81,7 @@ export default function Product() {
   function addToCart() {
     if (!variant || stock < qty) { setMsg(stock ? `Only ${stock} left.` : 'This option is sold out.'); return false }
     add({ variant_id: variant.id, name: p.name, slug: p.slug, color: variant.color, size: variant.size, price: p.price, image: gallery[0]?.url || null }, qty)
+    track('cart', p.id)
     setMsg('')
     return true
   }

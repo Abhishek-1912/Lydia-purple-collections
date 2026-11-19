@@ -13,7 +13,7 @@ from . import store
 
 log = logging.getLogger("notify")
 ORDER_FIELDS = ("id,order_no,customer_name,phone,email,address,subtotal,shipping_fee,cod_fee,discount,total,"
-                "coupon_code,payment_method,payment_status,courier,tracking_number,order_items(name,color,size,price,qty)")
+                "coupon_code,payment_method,payment_status,courier,tracking_number,gift_amount,order_items(name,color,size,price,qty)")
 
 
 # ───────────── channels ─────────────
@@ -96,7 +96,7 @@ def _load(order_id: str) -> dict | None:
 
 
 def _pay_label(o: dict) -> str:
-    return "Cash on Delivery" if o["payment_method"] == "cod" else "Paid online"
+    return {"cod": "Cash on Delivery", "gift": "Paid by gift card"}.get(o["payment_method"], "Paid online")
 
 
 # ───────────── events ─────────────
@@ -137,7 +137,7 @@ def order_shipped(order_id: str) -> None:
                 "Your order is on its way!",
                 f"<p>Order <b>{no}</b> has been shipped via <b>{html.escape(courier)}</b>.<br>"
                 f"Tracking number: <b>{html.escape(tracking)}</b></p>"
-                + ("<p>Please keep " + inr(o["total"]) + " ready for Cash on Delivery.</p>" if o["payment_method"] == "cod" else "")
+                + ("<p>Please keep " + inr(o["total"] - (o.get("gift_amount") or 0)) + " ready for Cash on Delivery.</p>" if o["payment_method"] == "cod" else "")
                 + _order_table(o)), reply_to=s.shop_email or None)
         send_whatsapp(o["phone"], s.whatsapp_template_shipped, [o["customer_name"], no, courier, tracking])
     except Exception:

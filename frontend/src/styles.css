@@ -917,3 +917,14 @@ body, .display { font-variant-numeric: lining-nums; }
 .vc-actions { display: flex; flex-direction: column; gap: 8px; flex: 1 1 280px; max-width: 420px; }
 .vc-actions label { display: flex; flex-direction: column; gap: 4px; font-weight: 600; }
 .vc-actions input { min-height: 40px; padding: 6px 10px; border: 1px solid #D8CBB0; border-radius: 8px; }
+
+/* ───────── analytics ───────── */
+.funnel { list-style: none; padding: 0; margin: 8px 0; display: flex; flex-direction: column; gap: 10px; }
+.funnel li { display: grid; grid-template-columns: 140px 1fr 48px 52px; gap: 10px; align-items: center; font-size: .88rem; }
+.funnel-label { font-weight: 600; }
+.funnel-n { font-weight: 700; color: var(--plum); text-align: right; }
+.funnel-pct { color: var(--muted); font-size: .8rem; }
+@media (max-width: 600px) { .funnel li { grid-template-columns: 1fr 44px 48px; } .funnel .hbar-track { grid-column: 1 / -1; grid-row: 2; } }
+.an-table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+.an-table th, .an-table td { text-align: left; padding: 8px 6px; border-bottom: 1px solid #EFE4CC; }
+.an-table th { color: var(--muted); font-weight: 600; font-size: .8rem; }
