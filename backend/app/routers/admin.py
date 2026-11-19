@@ -607,6 +607,10 @@ def put_store_settings(body: dict):
                 t = t.upper()
                 if not re.fullmatch(r"\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]", t):
                     raise HTTPException(400, "GSTIN should be 15 characters, like 36ABCDE1234F1Z5.")
+            if k in ("call_start", "call_end") and t and not re.fullmatch(r"([01]\d|2[0-3]):[0-5]\d", t):
+                raise HTTPException(400, "Call hours should look like 11:00 or 19:30.")
+            if k == "call_days" and t and not re.fullmatch(r"[1-7](,[1-7])*", t):
+                raise HTTPException(400, "Choose at least one day for video calls.")
             if k == "shop_pin" and t and not re.fullmatch(r"[1-9]\d{5}", t):
                 raise HTTPException(400, "Shop PIN must be 6 digits.")
             if k == "email" and t and not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", t):
@@ -634,6 +638,48 @@ async def upload_banner(file: UploadFile = File(...)):
     path = f"banners/{uuid.uuid4().hex}.{kind}"
     get_db().storage.from_(BUCKET).upload(path, data, {"content-type": f"image/{'jpeg' if kind == 'jpg' else kind}"})
     return {"url": f"{get_settings().supabase_url}/storage/v1/object/public/{BUCKET}/{path}"}
+
+
+# ───────────── product video ─────────────
+MAX_VIDEO = 50 * 1024 * 1024  # Supabase free plan: 50 MB per file
+
+
+def video_kind(head: bytes) -> str | None:
+    if head[4:8] == b"ftyp":
+        return "mov" if head[8:10] == b"qt" else "mp4"
+    if head[:4] == b"\x1a\x45\xdf\xa3":
+        return "webm"
+    return None
+
+
+@router.post("/products/{pid}/video")
+async def upload_video(pid: str, file: UploadFile = File(...)):
+    _product(pid)
+    data = await file.read(MAX_VIDEO + 1)
+    if len(data) > MAX_VIDEO:
+        raise HTTPException(400, "Video is larger than 50 MB. Record a shorter clip (30–60 seconds) or send it to yourself on WhatsApp first to make it smaller.")
+    kind = video_kind(data[:16])
+    if not kind:
+        raise HTTPException(400, "Please upload an MP4, MOV or WebM video.")
+    path = f"videos/{pid}/{uuid.uuid4().hex}.{kind}"
+    ctype = {"mp4": "video/mp4", "mov": "video/quicktime", "webm": "video/webm"}[kind]
+    get_db().storage.from_(BUCKET).upload(path, data, {"content-type": ctype})
+    url = f"{get_settings().supabase_url}/storage/v1/object/public/{BUCKET}/{path}"
+    get_db().table("products").update({"video_url": url}).eq("id", pid).execute()
+    return _product(pid)
+
+
+@router.delete("/products/{pid}/video")
+def remove_video(pid: str):
+    p = _product(pid)
+    url = (p.get("details") or {}).get("video_url") or ""
+    get_db().table("products").update({"video_url": None}).eq("id", pid).execute()
+    if f"/{BUCKET}/videos/" in url:
+        try:
+            get_db().storage.from_(BUCKET).remove([url.split(f"/{BUCKET}/", 1)[1]])
+        except Exception:
+            pass
+    return _product(pid)
 
 
 # ───────────── categories ─────────────

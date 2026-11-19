@@ -6,11 +6,12 @@ from .config import get_settings
 from .db import get_db
 from .pricing import Rules
 
-NUMBER_FIELDS = {"gst_rate": (0, 28), "low_stock": (0, 50), "free_shipping_above": (0, 1_000_000), "shipping_fee": (0, 10_000), "cod_fee": (0, 10_000),
+NUMBER_FIELDS = {"call_enabled": (0, 1), "call_slot": (10, 120), "call_days_ahead": (1, 30), "gst_rate": (0, 28), "low_stock": (0, 50), "free_shipping_above": (0, 1_000_000), "shipping_fee": (0, 10_000), "cod_fee": (0, 10_000),
                  "cod_max_order": (0, 10_000_000), "dispatch_days": (0, 14)}
 TEXT_FIELDS = {"shop_pin": 6, "whatsapp": 13, "phone": 20, "email": 120, "address": 300, "hours": 120,
                "instagram": 200, "facebook": 200, "announcement": 140,
-               "gstin": 15, "legal_name": 120, "shop_state": 60, "hsn": 8, "invoice_prefix": 10}
+               "gstin": 15, "legal_name": 120, "shop_state": 60, "hsn": 8, "invoice_prefix": 10,
+               "call_days": 13, "call_start": 5, "call_end": 5}
 _cache: dict = {"at": 0.0, "data": {}}
 
 
@@ -21,7 +22,8 @@ def defaults() -> dict:
             # Public contact details start empty. SHOP_EMAIL / SHOP_WHATSAPP env values are only used for order alerts.
             "whatsapp": "", "phone": "", "email": "", "address": "", "hours": "",
             "instagram": "", "facebook": "", "announcement": "", "banners": [], "hero": {}, "slide_seconds": 2,
-            "gstin": "", "legal_name": "", "shop_state": "", "hsn": "5007", "gst_rate": 5, "invoice_prefix": "LPC"}
+            "gstin": "", "legal_name": "", "shop_state": "", "hsn": "5007", "gst_rate": 5, "invoice_prefix": "LPC",
+            "call_enabled": 0, "call_days": "1,2,3,4,5,6", "call_start": "11:00", "call_end": "19:00", "call_slot": 30, "call_days_ahead": 7}
 
 
 def overrides(fresh: bool = False) -> dict:

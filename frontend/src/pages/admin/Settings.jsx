@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAuthedApi } from '../../context/AuthContext.jsx'
 import BannersEditor from './BannersEditor.jsx'
 import HeroEditor from './HeroEditor.jsx'
+import CallSettings from './CallSettings.jsx'
 
 const SECTIONS = [
   { title: 'Shipping & Cash on Delivery', note: 'Changes apply to new carts and orders straight away.', fields: [
@@ -79,6 +80,7 @@ export default function Settings() {
           </div>
         </fieldset>
       ))}
+      <CallSettings f={f} setF={setF} />
       <HeroEditor hero={f.hero || {}} seconds={f.slide_seconds || 2} onChange={(hero) => setF({ ...f, hero })} onSeconds={(slide_seconds) => setF({ ...f, slide_seconds })} />
       <BannersEditor banners={f.banners || []} onChange={(banners) => setF({ ...f, banners })} />
       {msg.text && <p className={`alert ${msg.type === 'ok' ? 'alert-ok' : 'alert-error'}`} role="status">{msg.text}</p>}

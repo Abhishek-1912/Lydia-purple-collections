@@ -91,7 +91,7 @@ export default function Product() {
         </nav>
 
         <div className="pdp">
-          <Gallery images={gallery} alt={`${p.name}${color ? ` in ${color}` : ''}`} hex={hex} />
+          <Gallery images={gallery} alt={`${p.name}${color ? ` in ${color}` : ''}`} hex={hex} video={p.details?.video_url} />
 
           <div className="pdp-info">
             <div className="pcard-tags static">
@@ -161,8 +161,10 @@ export default function Product() {
                   <WhatsAppIcon /> Order on WhatsApp
                 </a>
                 <div className="pdp-extra">
-                  {d.video_url && <a className="link-gold" href={d.video_url} target="_blank" rel="noreferrer">▶ Watch the video</a>}
-                  <a className="link-gold" href={whatsappLink(`Hi! Can I see a live video of "${p.name}"${color ? ` in ${color}` : ''}?\n${window.location.href}`)} target="_blank" rel="noreferrer">📹 Ask for a live video call</a>
+                  {rules.call_enabled
+                    ? <Link className="link-gold" to={`/video-call?product=${p.slug}`}>📹 Book a video call</Link>
+                    : <a className="link-gold" href={whatsappLink(`Hi! Can I see a live video of "${p.name}"${color ? ` in ${color}` : ''}?\n${window.location.href}`)} target="_blank" rel="noreferrer">📹 Ask for a live video call</a>}
+                  {rules.call_enabled && <a className="link-gold" href={whatsappLink(`Hi! Can I see a live video of "${p.name}"${color ? ` in ${color}` : ''}?\n${window.location.href}`)} target="_blank" rel="noreferrer">💬 Or ask on WhatsApp</a>}
                 </div>
                 <DeliveryCheck codAvailable={p.price + rules.cod_fee <= rules.cod_max_order} />
                 {msg && <p className="alert alert-error" role="alert">{msg}</p>}

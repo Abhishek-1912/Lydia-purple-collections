@@ -13,7 +13,7 @@ const swatchStyle = (c) => ({ background: swatchBg(c?.hex, c?.hex2) })
 const colourLabel = (c) => (c.border ? `${c.name} with ${c.border} border` : c.name)
 const uid = () => Math.random().toString(36).slice(2)
 
-const fresh = () => ({ photos: [], kind: null, type: null, price: '', mrp: '', colours: [], sizes: [], stock: {}, details: {}, note: '', name: '', nameEdited: false, isNew: true, bridal: false })
+const fresh = () => ({ video: null, photos: [], kind: null, type: null, price: '', mrp: '', colours: [], sizes: [], stock: {}, details: {}, note: '', name: '', nameEdited: false, isNew: true, bridal: false })
 
 export default function EasyAdd() {
   const call = useAuthedApi()
@@ -23,7 +23,7 @@ export default function EasyAdd() {
   const [error, setError] = useState('')
   const [done, setDone] = useState(null)
   const [cats, setCats] = useState([])
-  const camRef = useRef(null), galRef = useRef(null)
+  const camRef = useRef(null), galRef = useRef(null), vidRef = useRef(null)
   const [picker, setPicker] = useState(null) // null | { mode: 'add' } | { mode: 'border', id }
   const set = (patch) => setS((x) => ({ ...x, ...patch }))
 
@@ -150,7 +150,13 @@ export default function EasyAdd() {
         fd.append('color', multi && pc ? colourLabel(pc) : '')
         try { await call(`/api/admin/products/${p.id}/images`, { method: 'POST', body: fd }) } catch { failed.push(i + 1) }
       }
-      setDone({ product: p, failed, hiddenCategory: cat && !cat.is_active ? cat.name : null })
+      let videoFailed = false
+      if (s.video) {
+        setBusy('Uploading video… (this can take a minute)')
+        const vd = new FormData(); vd.append('file', s.video, s.video.name)
+        try { await call(`/api/admin/products/${p.id}/video`, { method: 'POST', body: vd }) } catch { videoFailed = true }
+      }
+      setDone({ product: p, failed, videoFailed, hiddenCategory: cat && !cat.is_active ? cat.name : null })
     } catch (err) { setError(err.message) }
     setBusy('')
   }
@@ -170,6 +176,7 @@ export default function EasyAdd() {
           <div className="easy-big">✅</div>
           <h1 className="admin-h">Product added!</h1>
           <p><strong>{done.product.name}</strong> · {rupees(done.product.price)}</p>
+          {done.videoFailed && <p className="alert alert-error">The video didn’t upload. Open the product (Edit more details) to try again.</p>}
           {done.failed.length > 0 && <p className="alert alert-error">Photo {done.failed.join(', ')} didn’t upload. Open the product to add it again.</p>}
           {done.hiddenCategory && <p className="alert alert-error">The “{done.hiddenCategory}” category is hidden, so customers can’t see this yet. Switch it on in Admin → Categories.</p>}
           <button className="btn btn-primary easy-btn" onClick={() => restart(true)}>➕ Add similar (same type &amp; price)</button>
@@ -198,6 +205,16 @@ export default function EasyAdd() {
           </div>
           <input ref={camRef} type="file" accept="image/*" capture="environment" onChange={addPhotos} hidden />
           <input ref={galRef} type="file" accept="image/*" multiple onChange={addPhotos} hidden />
+          <input ref={vidRef} type="file" accept="video/mp4,video/quicktime,video/webm" hidden onChange={(e) => {
+            const v = e.target.files[0]; e.target.value = ''
+            if (!v) return
+            if (v.size > 50 * 1024 * 1024) { setError('Video is larger than 50 MB. Record a shorter clip (30–60 seconds).'); return }
+            setError(''); set({ video: v })
+          }} />
+          <button type="button" className="btn btn-outline easy-btn wide" onClick={() => vidRef.current.click()}>
+            🎥 {s.video ? `Video added (${Math.round(s.video.size / 1048576)} MB) — change` : 'Add a short video (optional)'}
+          </button>
+          {s.video && <button type="button" className="link-btn" onClick={() => set({ video: null })}>Remove video</button>}
           {s.photos.some((p) => p.tooSmall) && (
             <p className="alert alert-error">⚠️ Some photos are very small and will look blurry. Please use the original photo from the camera (not a WhatsApp forward or screenshot).</p>
           )}

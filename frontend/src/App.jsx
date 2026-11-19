@@ -14,6 +14,7 @@ import Policies from './pages/Policies.jsx'
 import Terms from './pages/Terms.jsx'
 import Wishlist from './pages/Wishlist.jsx'
 import Invoice from './pages/Invoice.jsx'
+import VideoCall from './pages/VideoCall.jsx'
 const AdminLayout = lazy(() => import('./pages/admin/AdminLayout.jsx'))
 const Dashboard = lazy(() => import('./pages/admin/Dashboard.jsx'))
 const AdminOrders = lazy(() => import('./pages/admin/Orders.jsx'))
@@ -28,6 +29,7 @@ const PrintSlips = lazy(() => import('./pages/admin/PrintSlips.jsx'))
 const EasyAdd = lazy(() => import('./pages/admin/EasyAdd.jsx'))
 const AdminReviews = lazy(() => import('./pages/admin/AdminReviews.jsx'))
 const Abandoned = lazy(() => import('./pages/admin/Abandoned.jsx'))
+const VideoCalls = lazy(() => import('./pages/admin/VideoCalls.jsx'))
 import NotFound from './pages/NotFound.jsx'
 
 export default function App() {
@@ -52,6 +54,7 @@ export default function App() {
         <Route path="policies" element={<Policies />} />
         <Route path="terms" element={<Terms />} />
         <Route path="wishlist" element={<Wishlist />} />
+        <Route path="video-call" element={<VideoCall />} />
         <Route path="admin" element={<AdminLayout />}>
           <Route index element={<Dashboard />} />
           <Route path="orders" element={<AdminOrders />} />
@@ -67,6 +70,7 @@ export default function App() {
           <Route path="reviews" element={<AdminReviews />} />
           <Route path="abandoned" element={<Abandoned />} />
           <Route path="invoice/:id" element={<Invoice admin />} />
+          <Route path="calls" element={<VideoCalls />} />
         </Route>
         <Route path="*" element={<NotFound />} />
       </Route>

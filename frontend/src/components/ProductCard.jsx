@@ -31,6 +31,7 @@ export default function ProductCard({ product: p }) {
           {!p.in_stock ? <span className="tag tag-dark">Sold out</span>
             : p.discount_pct > 0 && <span className="tag tag-sale">{p.discount_pct}% off</span>}
           {p.is_bridal && <span className="tag tag-gold">Bridal</span>}
+          {p.details?.video_url && <span className="tag tag-video">▶ Video</span>}
         </div>
       </Link>
       <div className="pcard-body">

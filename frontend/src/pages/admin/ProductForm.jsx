@@ -22,6 +22,26 @@ export default function ProductForm() {
   const [msg, setMsg] = useState({ type: '', text: '' })
   const [upColor, setUpColor] = useState('')
   const [uploading, setUploading] = useState(0)
+  const [videoBusy, setVideoBusy] = useState(false)
+
+  async function uploadVideo(e) {
+    const file = e.target.files[0]; e.target.value = ''
+    if (!file) return
+    if (file.size > 50 * 1024 * 1024) { setMsg({ type: 'error', text: 'Video is larger than 50 MB. Record a shorter clip (30–60 seconds).' }); return }
+    setVideoBusy(true); setMsg({ type: '', text: '' })
+    const fd = new FormData(); fd.append('file', file, file.name)
+    try {
+      const p = await call(`/api/admin/products/${id}/video`, { method: 'POST', body: fd })
+      setForm((f) => ({ ...f, video_url: p.details.video_url || '' }))
+      setMsg({ type: 'ok', text: 'Video added. It plays in the photo slider on the product page.' })
+    } catch (err) { setMsg({ type: 'error', text: err.message }) }
+    setVideoBusy(false)
+  }
+  async function removeVideo() {
+    if (!window.confirm('Remove the video from this product?')) return
+    const p = await call(`/api/admin/products/${id}/video`, { method: 'DELETE' })
+    setForm((f) => ({ ...f, video_url: p.details.video_url || '' }))
+  }
 
   useEffect(() => { call('/api/admin/categories').then(setCats).catch(() => {}) }, [call])
   useEffect(() => {
@@ -150,7 +170,15 @@ export default function ProductForm() {
           <div className="field"><label htmlFor="p-origin">Origin</label><input id="p-origin" type="text" value={form.origin} onChange={set('origin')} placeholder="Kanchipuram, Tamil Nadu" /></div>
         </div>
         <div className="field"><label htmlFor="p-occ">Occasion</label><input id="p-occ" type="text" value={form.occasion} onChange={set('occasion')} placeholder="Weddings, poojas, festivals" /></div>
-        <div className="field"><label htmlFor="p-video">Video link (optional)</label><input id="p-video" type="url" value={form.video_url} onChange={set('video_url')} placeholder="https://youtube.com/… or Instagram reel" /></div>
+        <div className="field"><label htmlFor="p-video">Video — YouTube link, or upload below (optional)</label><input id="p-video" type="url" value={form.video_url} onChange={set('video_url')} placeholder="https://youtube.com/…" /></div>
+        {!isNew && (
+          <div className="row-gap" style={{ marginBottom: 12 }}>
+            <label className="btn btn-outline btn-sm file-btn">{videoBusy ? 'Uploading video…' : '🎥 Upload a video (MP4/MOV, max 50 MB)'}
+              <input type="file" accept="video/mp4,video/quicktime,video/webm" className="sr-only" disabled={videoBusy} onChange={uploadVideo} />
+            </label>
+            {form.video_url && <button type="button" className="link-btn danger" onClick={removeVideo}>Remove video</button>}
+          </div>
+        )}
         <label className="check"><input type="checkbox" checked={form.silk_mark} onChange={set('silk_mark')} /> Silk Mark certified (only tick if the saree carries the Silk Mark label)</label>
       </fieldset>
 

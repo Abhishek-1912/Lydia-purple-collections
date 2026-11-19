@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from .config import get_settings
-from .routers import account, admin, catalog, checkout, drafts, reviews
+from .routers import account, admin, calls, catalog, checkout, drafts, reviews
 
 settings = get_settings()
 logging.basicConfig(level=logging.INFO)
@@ -64,6 +64,7 @@ app.include_router(account.router)
 app.include_router(admin.router)
 app.include_router(reviews.router)
 app.include_router(drafts.router)
+app.include_router(calls.router)
 
 
 @app.get("/api/health")
