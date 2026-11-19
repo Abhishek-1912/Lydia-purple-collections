@@ -97,6 +97,8 @@ main { min-height: 100vh; }  /* keeps the footer below the fold while content lo
 .announce { background: var(--plum); color: var(--gold-soft); text-align: center; font-size: .72rem; padding: 6px 12px; letter-spacing: .02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; height: 28px; line-height: 16px; }
 .header-bar { display: grid; grid-template-columns: 44px 1fr auto; align-items: center; gap: 8px; height: 64px; }
 .logo { display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--gold); text-decoration: none; }
+/* Wider screens: the words sit at the exact centre; the lotus hangs to their left */
+@media (min-width: 900px) { .logo { position: relative; gap: 0; } .logo > svg { position: absolute; right: calc(100% + 8px); top: 50%; transform: translateY(-50%); } }
 .logo-text { display: flex; flex-direction: column; line-height: 1; }
 .logo-main { font: 700 1.15rem var(--f-head); color: var(--purple); letter-spacing: .06em; }
 .logo-sub { font: italic 600 .95rem var(--f-display); color: var(--gold-text); letter-spacing: .12em; }
@@ -115,7 +117,11 @@ main { min-height: 100vh; }  /* keeps the footer below the fold while content lo
   .menu-btn { visibility: hidden; }
   .header-actions { justify-content: flex-end; }
   .main-nav { display: block; }
-  .main-nav ul { display: flex; justify-content: center; flex-wrap: wrap; gap: 0 clamp(12px, 1.8vw, 28px); padding: 0 16px; }
+  /* Full-width row, items centred on the page; never wraps off-centre (scrolls sideways if it can't fit) */
+  .main-nav ul { display: flex; justify-content: center; justify-content: safe center; flex-wrap: nowrap; gap: 0 clamp(10px, 1.7vw, 30px); padding: 0 16px; width: 100%; max-width: none; overflow-x: auto; scrollbar-width: none; }
+  .main-nav ul::-webkit-scrollbar { display: none; }
+  .main-nav li { flex: none; }
+  .main-nav a { padding: 14px 2px; font-size: clamp(.78rem, 1.05vw, .9rem); letter-spacing: clamp(.04em, .5vw, .08em); }
 }
 
 /* hero */
@@ -697,3 +703,11 @@ body, .display { font-variant-numeric: lining-nums; }
 .range input { accent-color: var(--purple); }
 .hero-colour { display: flex; align-items: center; gap: 10px; font-weight: 600; margin: 10px 0; }
 .hero-colour input { width: 56px; height: 40px; border: 1px solid #D8CBB0; border-radius: 8px; background: #fff; }
+
+/* footer: Reach us with icons, social buttons (no dotted strip) */
+.reach li a, .reach li span { display: inline-flex; align-items: flex-start; gap: 10px; padding: 6px 0; color: var(--ivory); text-decoration: none; line-height: 1.45; }
+.reach li a:hover { color: var(--gold-soft); }
+.reach svg { flex: none; margin-top: 2px; color: var(--gold); }
+.socials { display: flex; gap: 10px; margin-top: 12px; }
+.socials a { display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 42px; border-radius: 50%; border: 1px solid rgba(234,215,150,.5); color: var(--gold-soft); }
+.socials a:hover { background: var(--gold); color: var(--plum); border-color: var(--gold); }

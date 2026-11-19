@@ -94,7 +94,7 @@ def cart_quote(body: QuoteIn):
 def store_rules():
     s, c = get_settings(), store.current()
     return {k: c[k] for k in ("free_shipping_above", "shipping_fee", "cod_fee", "cod_max_order",
-                              "whatsapp", "phone", "email", "address", "hours", "instagram", "announcement", "banners", "hero", "slide_seconds")} | {
+                              "whatsapp", "phone", "email", "address", "hours", "instagram", "facebook", "announcement", "banners", "hero", "slide_seconds")} | {
         "payment_timeout_minutes": s.payment_timeout_minutes,
         "razorpay_enabled": s.razorpay_enabled,
         "razorpay_key_id": s.razorpay_key_id,

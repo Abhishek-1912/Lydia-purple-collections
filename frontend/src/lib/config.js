@@ -12,13 +12,14 @@ export const config = {
   email: real(env.VITE_SHOP_EMAIL),
   address: real(env.VITE_SHOP_ADDRESS),
   instagram: real(env.VITE_INSTAGRAM),
+  facebook: '',
   hours: real(env.VITE_SHOP_HOURS),
   announcement: '',
 }
 
 /** Values from Admin → Settings override the build-time defaults above. */
 export function applyShopSettings(s = {}) {
-  const map = { whatsapp: 'whatsapp', phone: 'phone', email: 'email', address: 'address', hours: 'hours', instagram: 'instagram', announcement: 'announcement' }
+  const map = { whatsapp: 'whatsapp', phone: 'phone', email: 'email', address: 'address', hours: 'hours', instagram: 'instagram', facebook: 'facebook', announcement: 'announcement' }
   for (const [from, to] of Object.entries(map)) if (s[from]) config[to] = s[from]
 }
 

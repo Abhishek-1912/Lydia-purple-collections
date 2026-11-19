@@ -9,10 +9,10 @@ const SECTIONS = [
     ['cod_fee', 'COD handling fee (₹)', 'num'], ['cod_max_order', 'Largest COD order (₹)', 'num'],
     ['shop_pin', 'Shop PIN code (for delivery dates)', 'pin'], ['dispatch_days', 'Days to pack before courier pickup', 'num'],
   ] },
-  { title: 'Shop contact details', note: 'Shown on the Contact page, footer, packing slips and every WhatsApp button. Blank fields are hidden.', fields: [
+  { title: 'Shop contact details', note: 'Shown in the footer (Reach us), Contact page, packing slips and every WhatsApp button. Blank fields are hidden.', fields: [
     ['whatsapp', 'WhatsApp number (10 digits)', 'tel'], ['phone', 'Phone (as shown to customers)', 'text'],
     ['email', 'Shop email (also receives new-order alerts)', 'email'], ['address', 'Shop address', 'text'],
-    ['hours', 'Store hours', 'text', 'Mon–Sat 10:00 am – 8:00 pm'], ['instagram', 'Instagram page link', 'url', 'https://instagram.com/yourpage'],
+    ['hours', 'Store hours', 'text', 'Mon–Sat 10:00 am – 8:00 pm'], ['instagram', 'Instagram page link', 'url', 'https://instagram.com/yourpage'], ['facebook', 'Facebook page link', 'url', 'https://facebook.com/yourpage'],
   ] },
   { title: 'Announcement bar', note: 'The purple strip at the top of every page. Leave blank for the automatic free-shipping message. Keep it short (fits one line on phones).', fields: [
     ['announcement', 'Announcement text', 'text', 'Diwali sale: 10% off with code FESTIVE10'],

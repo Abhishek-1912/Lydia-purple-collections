@@ -58,7 +58,7 @@ export default function Header() {
         </div>
       </div>
       <nav id="main-nav" className={`main-nav ${open ? 'open' : ''}`} aria-label="Main">
-        <ul className="container">
+        <ul className="nav-list">
           {navItems(cats).map((n) => (
             <li key={n.to}><NavLink to={n.to} end={n.end}>{n.label}</NavLink></li>
           ))}

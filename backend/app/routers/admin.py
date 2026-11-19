@@ -569,8 +569,8 @@ def put_store_settings(body: dict):
                 raise HTTPException(400, "Shop PIN must be 6 digits.")
             if k == "email" and t and not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", t):
                 raise HTTPException(400, "Shop email doesn't look right.")
-            if k == "instagram" and t and not t.startswith("https://"):
-                raise HTTPException(400, "Instagram link must start with https://")
+            if k in ("instagram", "facebook") and t and not t.startswith("https://"):
+                raise HTTPException(400, f"{k.capitalize()} link must start with https://")
             clean[k] = t
     try:
         return store.save(clean)
