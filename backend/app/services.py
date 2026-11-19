@@ -8,7 +8,7 @@ from .pricing import MAX_QTY, Rules, coupon_discount, totals
 PRODUCT_SELECT = (
     "id,slug,name,description,fabric,care,category_id,price,mrp,is_bridal,is_new,is_clearance,is_active,"
     "sort_order,created_at,saree_length,saree_width,blouse_piece,composition,weave,origin,occasion,silk_mark,video_url,categories(slug,name,is_active),"
-    "product_variants(id,color,color_hex,size,sku,stock),product_images(id,url,color,sort_order)"
+    "product_variants(id,color,color_hex,color_hex2,size,sku,stock),product_images(id,url,color,sort_order)"
 )
 
 DETAIL_FIELDS = ["saree_length", "saree_width", "blouse_piece", "composition", "weave", "origin", "occasion", "video_url"]
@@ -36,7 +36,7 @@ def shape_product(p: dict) -> dict:
     for v in variants:
         if v["color"] and v["color"] not in seen:
             seen.add(v["color"])
-            colors.append({"name": v["color"], "hex": v["color_hex"]})
+            colors.append({"name": v["color"], "hex": v["color_hex"], "hex2": v.get("color_hex2")})
     sizes = list(dict.fromkeys(v["size"] for v in variants if v["size"]))
     total_stock = sum(v["stock"] for v in variants)
     mrp = p.get("mrp")
@@ -59,7 +59,7 @@ def shape_product(p: dict) -> dict:
         "created_at": p.get("created_at"),
         "colors": colors,
         "sizes": sizes,
-        "variants": [{k: v[k] for k in ("id", "color", "color_hex", "size", "sku", "stock")} for v in variants],
+        "variants": [{k: v[k] for k in ("id", "color", "color_hex", "color_hex2", "size", "sku", "stock")} for v in variants],
         "images": [{"id": i["id"], "url": i["url"], "color": i["color"]} for i in images],
         "is_active": p["is_active"],
         "details": {k: p.get(k) for k in DETAIL_FIELDS},

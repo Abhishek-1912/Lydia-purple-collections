@@ -51,7 +51,7 @@ export default function ProductForm() {
     const body = {
       ...form, price, mrp, category_id: form.category_id || null,
       ...Object.fromEntries(DETAIL_KEYS.map((k) => [k, form[k].trim() || null])), sort_order: parseInt(form.sort_order, 10) || 0,
-      variants: variants.map((v) => ({ id: v.id, color: v.color.trim(), color_hex: v.color_hex, size: v.size.trim(), sku: v.sku.trim() || null, stock: Math.max(0, parseInt(v.stock, 10) || 0) })),
+      variants: variants.map((v) => ({ id: v.id, color: v.color.trim(), color_hex: v.color_hex, color_hex2: v.color_hex2 || '', size: v.size.trim(), sku: v.sku.trim() || null, stock: Math.max(0, parseInt(v.stock, 10) || 0) })),
     }
     setBusy(true)
     try {

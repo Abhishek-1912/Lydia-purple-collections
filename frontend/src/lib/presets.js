@@ -40,3 +40,41 @@ export const COLOURS = [
   ['Teal', '#127C7C'], ['Bottle Green', '#1F5E3B'], ['Parrot Green', '#5DBB2F'], ['Mint', '#9ED9C3'], ['Brown', '#6B3E26'],
   ['Beige', '#D8C3A0'], ['Multicolour', 'linear'],
 ]
+
+// Detail choices shown as tap-buttons in Easy Add. Nothing is pre-selected: only what the owner taps is shown to customers.
+// "suggest" lists are marked ★ for the chosen saree type (from SAREE_TYPES) but still need a tap.
+export const DETAIL_FIELDS = {
+  saree: [
+    { key: 'fabric', label: 'Fabric', options: ['Pure silk', 'Semi silk / Silk blend', 'Art silk', 'Soft silk', 'Silk cotton', 'Pure cotton', 'Georgette', 'Organza', 'Chiffon', 'Crepe'] },
+    { key: 'weave', label: 'Made by', options: ['Handloom', 'Powerloom', 'Printed', 'Hand-painted', 'Embroidered'] },
+    { key: 'origin', label: 'From (place)', options: ['Kanchipuram', 'Varanasi (Banarasi)', 'Pochampally', 'Gadwal', 'Uppada', 'Dharmavaram', 'Venkatagiri', 'Mangalagiri', 'Mysuru', 'Bhagalpur', 'Paithan / Yeola', 'Surat'] },
+    { key: 'zari', label: 'Zari', options: ['Pure zari', 'Tested zari', 'Copper zari', 'No zari'] },
+    { key: 'saree_length', label: 'Saree length', options: ['5.5 m', '6.2 m (with blouse)', '6.3 m (with blouse)'] },
+    { key: 'saree_width', label: 'Saree width', options: ['1.1 m (44 in)', '1.15 m (45 in)', '1.2 m (47 in)'] },
+    { key: 'blouse_piece', label: 'Blouse piece', options: ['Included · unstitched', 'Included · contrast colour', 'Included · running blouse', 'Stitched blouse included', 'Not included'] },
+    { key: 'occasion', label: 'Good for', multi: true, options: ['Wedding', 'Reception', 'Festivals', 'Pooja', 'Party', 'Office', 'Daily wear'] },
+    { key: 'care', label: 'Washing', options: ['Dry clean only', 'Gentle hand wash', 'Machine wash (gentle)'] },
+    { key: 'silk_mark', label: 'Silk Mark label', options: ['Yes, has Silk Mark'] },
+  ],
+  other: [
+    { key: 'fabric', label: 'Fabric', options: ['Pure silk', 'Silk blend', 'Art silk', 'Cotton silk', 'Pure cotton', 'Chanderi', 'Rayon', 'Georgette', 'Net'] },
+    { key: 'occasion', label: 'Good for', multi: true, options: ['Wedding', 'Festivals', 'Party', 'Office', 'Daily wear'] },
+    { key: 'care', label: 'Washing', options: ['Dry clean only', 'Gentle hand wash', 'Machine wash (gentle)'] },
+  ],
+}
+
+// ★ suggestions per saree type (only highlighted, never auto-selected)
+export const SUGGEST = {
+  kanjivaram: { fabric: 'Pure silk', weave: 'Handloom', origin: 'Kanchipuram', care: 'Dry clean only' },
+  banarasi: { origin: 'Varanasi (Banarasi)', care: 'Dry clean only' },
+  softsilk: { fabric: 'Soft silk', weave: 'Powerloom', care: 'Gentle hand wash' },
+  mysore: { fabric: 'Crepe', origin: 'Mysuru', care: 'Dry clean only' },
+  pattu: { weave: 'Handloom', origin: 'Pochampally' },
+  gadwal: { fabric: 'Silk cotton', weave: 'Handloom', origin: 'Gadwal' },
+  uppada: { weave: 'Handloom', origin: 'Uppada' },
+  tussar: { origin: 'Bhagalpur', care: 'Dry clean only' },
+  paithani: { weave: 'Handloom', origin: 'Paithan / Yeola' },
+  organza: { fabric: 'Organza', care: 'Dry clean only' },
+  georgette: { fabric: 'Georgette', care: 'Gentle hand wash' },
+  cotton: { fabric: 'Pure cotton', care: 'Gentle hand wash' },
+}
