@@ -13,6 +13,7 @@ import Contact from './pages/Contact.jsx'
 import Policies from './pages/Policies.jsx'
 import Terms from './pages/Terms.jsx'
 import Wishlist from './pages/Wishlist.jsx'
+import Invoice from './pages/Invoice.jsx'
 const AdminLayout = lazy(() => import('./pages/admin/AdminLayout.jsx'))
 const Dashboard = lazy(() => import('./pages/admin/Dashboard.jsx'))
 const AdminOrders = lazy(() => import('./pages/admin/Orders.jsx'))
@@ -44,6 +45,7 @@ export default function App() {
         <Route path="cart" element={<Cart />} />
         <Route path="checkout" element={<Checkout />} />
         <Route path="order/:id" element={<OrderConfirmation />} />
+        <Route path="order/:id/invoice" element={<Invoice />} />
         <Route path="login" element={<Login />} />
         <Route path="account" element={<Account />} />
         <Route path="contact" element={<Contact />} />
@@ -64,6 +66,7 @@ export default function App() {
           <Route path="add" element={<EasyAdd />} />
           <Route path="reviews" element={<AdminReviews />} />
           <Route path="abandoned" element={<Abandoned />} />
+          <Route path="invoice/:id" element={<Invoice admin />} />
         </Route>
         <Route path="*" element={<NotFound />} />
       </Route>

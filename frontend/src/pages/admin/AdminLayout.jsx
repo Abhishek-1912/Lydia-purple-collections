@@ -4,11 +4,13 @@ import { useTitle } from '../../lib/store.js'
 
 export default function AdminLayout() {
   useTitle('Admin')
-  const { user, isAdmin, loading, profile } = useAuth()
+  const { user, isAdmin, isPacker, loading, profile } = useAuth()
   const loc = useLocation()
   if (loading || (user && !profile)) return <section className="container section"><div className="skeleton-block" /></section>
   if (!user) return <Navigate to={`/login?next=${encodeURIComponent(loc.pathname)}`} replace />
-  if (!isAdmin) {
+  // Packers only see orders, packing slips and invoices
+  if (isPacker && !/^\/admin\/(orders|print|invoice)/.test(loc.pathname)) return <Navigate to="/admin/orders" replace />
+  if (!isAdmin && !isPacker) {
     return (
       <section className="container page-narrow center">
         <h1>Admins only</h1>
@@ -19,6 +21,12 @@ export default function AdminLayout() {
   return (
     <div className="admin">
       <nav className="admin-nav" aria-label="Admin">
+        {isPacker ? (
+          <div className="container">
+            <NavLink to="/admin/orders">Orders to pack</NavLink>
+            <NavLink to="/admin/print?status=confirmed">Print slips</NavLink>
+          </div>
+        ) : (
         <div className="container">
           <NavLink to="/admin/add" className="nav-add">➕ Add product</NavLink>
           <NavLink to="/admin" end>Dashboard</NavLink>
@@ -32,6 +40,7 @@ export default function AdminLayout() {
           <NavLink to="/admin/settings">Settings</NavLink>
           <NavLink to="/admin/staff">Staff</NavLink>
         </div>
+        )}
       </nav>
       <div className="container admin-body"><Outlet /></div>
     </div>

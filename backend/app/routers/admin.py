@@ -4,17 +4,17 @@ import re
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
 
 from .. import notify, services
-from ..auth import require_admin
+from ..auth import admin_gate, require_admin
 from ..config import get_settings
 from ..db import get_db
 from ..importer import run_import
 
-router = APIRouter(prefix="/api/admin", tags=["admin"], dependencies=[Depends(require_admin)])
+router = APIRouter(prefix="/api/admin", tags=["admin"], dependencies=[Depends(admin_gate)])
 IST = timezone(timedelta(hours=5, minutes=30))
 BUCKET = "product-images"
 MAX_IMAGE = 5 * 1024 * 1024
@@ -405,6 +405,21 @@ def export_orders(status: str | None = None):
                     headers={"Content-Disposition": 'attachment; filename="orders.csv"'})
 
 
+@router.get("/orders/{oid}/invoice")
+def order_invoice(oid: str):
+    from .. import invoice, store
+    db = get_db()
+    rows = db.table("orders").select(ORDER_FIELDS + ",invoice_no,invoice_date,gift_amount,gift_code").eq("id", oid).execute().data
+    if not rows:
+        raise HTTPException(404, "Order not found.")
+    o = rows[0]
+    if o["status"] in ("cancelled", "pending_payment"):
+        raise HTTPException(400, "Invoices are only for confirmed orders.")
+    n = db.rpc("next_invoice", {"p_order_id": oid}).execute().data
+    issued = datetime.fromisoformat(o["invoice_date"]).astimezone(IST) if o.get("invoice_date") else datetime.now(IST)
+    return invoice.build(o, store.current(), n, issued)
+
+
 class OrderAction(BaseModel):
     action: str = Field(pattern="^(tracking|pack|ship|deliver|cancel|review|refund)$")
     courier: str | None = Field(default=None, max_length=60)
@@ -412,7 +427,9 @@ class OrderAction(BaseModel):
 
 
 @router.patch("/orders/{oid}")
-def update_order(oid: str, body: OrderAction, background: BackgroundTasks):
+def update_order(oid: str, body: OrderAction, background: BackgroundTasks, request: Request):
+    if getattr(request.state, "role", "admin") == "packer" and body.action not in ("tracking", "pack", "ship"):
+        raise HTTPException(403, "Packers can add tracking and mark orders packed or shipped.")
     db = get_db()
     rows = db.table("orders").select("id,status,payment_status,payment_method,courier,tracking_number").eq("id", oid).execute().data
     if not rows:
@@ -586,6 +603,10 @@ def put_store_settings(body: dict):
                     t = "91" + t
                 if not re.fullmatch(r"91[6-9]\d{9}", t):
                     raise HTTPException(400, "WhatsApp number should be a 10-digit Indian mobile number.")
+            if k == "gstin" and t:
+                t = t.upper()
+                if not re.fullmatch(r"\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]", t):
+                    raise HTTPException(400, "GSTIN should be 15 characters, like 36ABCDE1234F1Z5.")
             if k == "shop_pin" and t and not re.fullmatch(r"[1-9]\d{5}", t):
                 raise HTTPException(400, "Shop PIN must be 6 digits.")
             if k == "email" and t and not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", t):
@@ -785,12 +806,13 @@ def customers(q: str | None = None):
 # ───────────── staff / admins ─────────────
 class StaffIn(BaseModel):
     email: str = Field(pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
-    admin: bool
+    admin: bool | None = None                       # older clients
+    role: str | None = Field(default=None, pattern="^(admin|packer|customer)$")
 
 
 @router.get("/staff")
 def staff():
-    return get_db().table("profiles").select("id,email,full_name,role,created_at").eq("role", "admin").order("created_at").execute().data
+    return get_db().table("profiles").select("id,email,full_name,role,created_at").in_("role", ["admin", "packer"]).order("created_at").execute().data
 
 
 @router.put("/staff")
@@ -800,10 +822,11 @@ def set_staff(body: StaffIn, me: dict = Depends(require_admin)):
     if not rows:
         raise HTTPException(404, "No account with this email yet. Ask them to sign in on the website once, then try again.")
     p = rows[0]
-    if not body.admin:
+    role = body.role or ("admin" if body.admin else "customer")
+    if role != "admin" and p["role"] == "admin":
         if p["id"] == me["id"]:
             raise HTTPException(400, "You can't remove your own admin access.")
-        if len(staff()) <= 1:
+        if len([s for s in staff() if s["role"] == "admin"]) <= 1:
             raise HTTPException(400, "There must be at least one admin.")
-    db.table("profiles").update({"role": "admin" if body.admin else "customer"}).eq("id", p["id"]).execute()
+    db.table("profiles").update({"role": role}).eq("id", p["id"]).execute()
     return staff()

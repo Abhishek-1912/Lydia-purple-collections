@@ -38,6 +38,8 @@ export function AuthProvider({ children }) {
     session, profile, loading,
     user: session?.user || null,
     isAdmin: profile?.role === 'admin',
+    isPacker: profile?.role === 'packer',
+    isStaff: ['admin', 'packer'].includes(profile?.role),
     token: session?.access_token || null,
     async getToken() {
       if (!started) return null

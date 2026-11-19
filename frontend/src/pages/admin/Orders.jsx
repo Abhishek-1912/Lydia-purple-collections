@@ -9,6 +9,7 @@ const COURIERS = ['India Post', 'DTDC', 'Delhivery', 'Blue Dart', 'Professional 
 
 function OrderRow({ o, onChange, onPhoneBlocked }) {
   const call = useAuthedApi()
+  const { isPacker } = useAuth()
   const [open, setOpen] = useState(false)
   const [courier, setCourier] = useState(o.courier || '')
   const [tracking, setTracking] = useState(o.tracking_number || '')
@@ -87,12 +88,13 @@ function OrderRow({ o, onChange, onPhoneBlocked }) {
           <div className="action-row">
             {o.status === 'confirmed' && <button className="btn btn-primary btn-sm" disabled={busy} onClick={() => act('pack')}>Mark packed</button>}
             {['confirmed', 'packed'].includes(o.status) && <button className="btn btn-primary btn-sm" disabled={busy} onClick={() => act('ship')}>Mark shipped</button>}
-            {o.status === 'shipped' && <button className="btn btn-primary btn-sm" disabled={busy} onClick={() => act('deliver')}>Mark delivered</button>}
-            {o.needs_review && <button className="btn btn-outline btn-sm" disabled={busy} onClick={() => act('review')}>Mark reviewed</button>}
-            {o.payment_status === 'paid' && o.payment_method === 'razorpay' && <button className="btn btn-outline btn-sm" disabled={busy} onClick={() => act('refund', 'Mark as refunded? Do the actual refund in the Razorpay dashboard.')}>Mark refunded</button>}
-            {['pending_payment', 'confirmed', 'packed'].includes(o.status) && <button className="btn btn-outline btn-sm danger" disabled={busy} onClick={() => act('cancel', `Cancel ${orderNo(o.order_no)}? Stock goes back to the shop.${o.payment_status === 'paid' ? ' Refund it in Razorpay too.' : ''}`)}>Cancel order</button>}
+            {o.status === 'shipped' && !isPacker && <button className="btn btn-primary btn-sm" disabled={busy} onClick={() => act('deliver')}>Mark delivered</button>}
+            {o.needs_review && !isPacker && <button className="btn btn-outline btn-sm" disabled={busy} onClick={() => act('review')}>Mark reviewed</button>}
+            {!isPacker && o.payment_status === 'paid' && o.payment_method === 'razorpay' && <button className="btn btn-outline btn-sm" disabled={busy} onClick={() => act('refund', 'Mark as refunded? Do the actual refund in the Razorpay dashboard.')}>Mark refunded</button>}
+            {!isPacker && ['pending_payment', 'confirmed', 'packed'].includes(o.status) && <button className="btn btn-outline btn-sm danger" disabled={busy} onClick={() => act('cancel', `Cancel ${orderNo(o.order_no)}? Stock goes back to the shop.${o.payment_status === 'paid' ? ' Refund it in Razorpay too.' : ''}`)}>Cancel order</button>}
             <Link className="btn btn-outline btn-sm" to={`/admin/print?id=${o.id}`}>Print slip</Link>
-            <button className="btn btn-outline btn-sm danger" disabled={busy} onClick={toggleBlock}>{o.cod_blocked ? 'Unblock COD' : 'Block COD'}</button>
+            {!['pending_payment', 'cancelled'].includes(o.status) && <Link className="btn btn-outline btn-sm" to={`/admin/invoice/${o.id}`}>Invoice</Link>}
+            {!isPacker && <button className="btn btn-outline btn-sm danger" disabled={busy} onClick={toggleBlock}>{o.cod_blocked ? 'Unblock COD' : 'Block COD'}</button>}
             <a className="btn btn-wa btn-sm" href={whatsappLink(waText).replace(/wa\.me\/\d+/, `wa.me/91${o.phone}`)} target="_blank" rel="noreferrer">WhatsApp customer</a>
           </div>
           {msg && <p className="small" role="status">{msg}</p>}
@@ -104,7 +106,7 @@ function OrderRow({ o, onChange, onPhoneBlocked }) {
 
 export default function Orders() {
   const call = useAuthedApi()
-  const { getToken } = useAuth()
+  const { getToken, isPacker } = useAuth()
   const [params, setParams] = useSearchParams()
   const [orders, setOrders] = useState(null)
   const [q, setQ] = useState(() => params.get('q') || '')
@@ -147,7 +149,7 @@ export default function Orders() {
         <h1 className="admin-h">Orders</h1>
         <div className="row-gap">
           <Link className="btn btn-outline btn-sm" to="/admin/print?status=confirmed">Print slips (to pack)</Link>
-          <button className="btn btn-outline btn-sm" onClick={exportCsv} disabled={exporting}>{exporting ? 'Preparing…' : 'Download CSV'}</button>
+          {!isPacker && <button className="btn btn-outline btn-sm" onClick={exportCsv} disabled={exporting}>{exporting ? 'Preparing…' : 'Download CSV'}</button>}
         </div>
       </div>
       <datalist id="couriers">{COURIERS.map((c) => <option key={c} value={c} />)}</datalist>

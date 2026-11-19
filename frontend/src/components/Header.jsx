@@ -31,7 +31,7 @@ export default function Header() {
   const { pathname } = useLocation()
   useEffect(() => { setOpen(false) }, [pathname])
   const { count: cartCount } = useCart()
-  const { user, isAdmin } = useAuth()
+  const { user, isAdmin, isPacker } = useAuth()
   const { count: wishCount } = useWishlist()
   const st = useSettings()
   const announce = st.announcement || `Free shipping above ${rupees(st.free_shipping_above)} · UPI & COD · WhatsApp orders`
@@ -53,6 +53,7 @@ export default function Header() {
         </Link>
         <div className="header-actions">
           {isAdmin && <Link to="/admin" className="admin-pill">Admin</Link>}
+          {isPacker && <Link to="/admin/orders" className="admin-pill">Packing</Link>}
           <Link to="/wishlist" className="icon-btn cart-btn" aria-label={`Wishlist, ${wishCount} saved`}>
             <HeartIcon />
             {wishCount > 0 && <span className="badge">{wishCount}</span>}

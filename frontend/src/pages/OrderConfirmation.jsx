@@ -62,6 +62,7 @@ export default function OrderConfirmation() {
         <a className="btn btn-wa btn-block" href={whatsappLink(`Hi! About my order ${orderNo(o.order_no)}.`)} target="_blank" rel="noreferrer">
           <WhatsAppIcon /> Message us about this order
         </a>
+        {(['shipped', 'delivered'].includes(o.status) || o.payment_status === 'paid') && <Link to={`/order/${o.id}/invoice`} className="btn btn-outline btn-block">🧾 Download invoice</Link>}
         <Link to="/shop" className="btn btn-outline btn-block">Continue shopping</Link>
       </div>
       <p className="small muted center">Bookmark this page to check your order status anytime.</p>

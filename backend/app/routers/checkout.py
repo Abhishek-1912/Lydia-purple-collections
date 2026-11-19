@@ -156,6 +156,21 @@ def abandon(order_id: str, body: AbandonIn):
     return {"cancelled": _cancel_unpaid(order_id)}
 
 
+@router.get("/orders/{order_id}/invoice")
+def customer_invoice(order_id: str):
+    """For the customer (by unguessable order id) once the order has shipped or been paid."""
+    from datetime import datetime, timedelta, timezone
+    from .. import invoice, store
+    db = get_db()
+    o = _order(order_id, PUBLIC_ORDER + ",invoice_no,invoice_date,gift_amount")
+    if not (o["status"] in ("shipped", "delivered") or o["payment_status"] == "paid") or o["status"] == "cancelled":
+        raise HTTPException(400, "Your invoice is available once the order has shipped.")
+    n = db.rpc("next_invoice", {"p_order_id": order_id}).execute().data
+    ist = timezone(timedelta(hours=5, minutes=30))
+    issued = datetime.fromisoformat(o["invoice_date"]).astimezone(ist) if o.get("invoice_date") else datetime.now(ist)
+    return invoice.build(o, store.current(), n, issued)
+
+
 @router.get("/orders/{order_id}")
 def get_order(order_id: str):
     o = _order(order_id)

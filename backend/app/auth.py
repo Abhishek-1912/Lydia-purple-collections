@@ -33,6 +33,28 @@ def require_user(request: Request) -> dict:
     return user
 
 
+def role_of(user: dict) -> str:
+    rows = get_db().table("profiles").select("role").eq("id", user["id"]).limit(1).execute().data
+    return rows[0]["role"] if rows else "customer"
+
+
+# What a packer may do inside /api/admin: see orders, update packing/shipping, print invoices.
+PACKER_ALLOWED = [("GET", r"^/api/admin/orders/?$"), ("PATCH", r"^/api/admin/orders/[0-9a-f-]+$"),
+                  ("GET", r"^/api/admin/orders/[0-9a-f-]+/invoice$")]
+
+
+def admin_gate(request: Request, user: dict = Depends(require_user)) -> dict:
+    """Admins: everything. Packers: only PACKER_ALLOWED. Everyone else: refused."""
+    import re
+    role = role_of(user)
+    request.state.role = role
+    if role == "admin":
+        return user
+    if role == "packer" and any(request.method == m and re.match(p, request.url.path) for m, p in PACKER_ALLOWED):
+        return user
+    raise HTTPException(403, "Admins only.")
+
+
 def require_admin(user: dict = Depends(require_user)) -> dict:
     rows = get_db().table("profiles").select("role").eq("id", user["id"]).limit(1).execute().data
     if not rows or rows[0]["role"] != "admin":

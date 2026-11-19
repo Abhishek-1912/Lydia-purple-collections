@@ -15,6 +15,11 @@ const SECTIONS = [
     ['email', 'Shop email (also receives new-order alerts)', 'email'], ['address', 'Shop address', 'text'],
     ['hours', 'Store hours', 'text', 'Mon–Sat 10:00 am – 8:00 pm'], ['instagram', 'Instagram page link', 'url', 'https://instagram.com/yourpage'], ['facebook', 'Facebook page link', 'url', 'https://facebook.com/yourpage'],
   ] },
+  { title: 'GST invoice', note: 'Fill these to print Tax Invoices with CGST/SGST or IGST. Leave GSTIN blank to print a plain order receipt instead.', fields: [
+    ['legal_name', 'Registered business name', 'text', 'Lydia Purple Collections'], ['gstin', 'GSTIN (15 characters)', 'text', '36ABCDE1234F1Z5'],
+    ['shop_state', 'State of registration (exactly as in the address form)', 'text', 'Telangana'], ['hsn', 'HSN code for sarees', 'text', '5007'],
+    ['gst_rate', 'GST rate % (included in prices)', 'num'], ['invoice_prefix', 'Invoice number prefix', 'text', 'LPC'],
+  ] },
   { title: 'Announcement bar', note: 'The purple strip at the top of every page. Leave blank for the automatic free-shipping message. Keep it short (fits one line on phones).', fields: [
     ['announcement', 'Announcement text', 'text', 'Diwali sale: 10% off with code FESTIVE10'],
   ] },

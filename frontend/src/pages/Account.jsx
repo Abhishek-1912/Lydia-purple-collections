@@ -113,6 +113,7 @@ export default function Account() {
                     ))}
                   </ul>
                   {o.tracking_number && <p className="small">🚚 {o.courier}: <strong>{o.tracking_number}</strong></p>}
+                  {(['shipped', 'delivered'].includes(o.status) || o.payment_status === 'paid') && <Link to={`/order/${o.id}/invoice`} className="link-gold small">🧾 Invoice</Link>}
                 </li>
               ))}
             </ul>
