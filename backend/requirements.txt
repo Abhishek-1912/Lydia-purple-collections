@@ -1,0 +1,10 @@
+# Exact versions tested locally. Python 3.12+ (Railway uses .python-version).
+fastapi==0.165.0
+uvicorn[standard]==0.54.0
+pydantic==2.14.3
+pydantic-settings==2.16.3
+httpx==0.28.1
+supabase==2.34.1
+python-multipart==0.0.34
+openpyxl==3.1.5
+pytest==9.2.0
