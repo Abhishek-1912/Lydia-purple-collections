@@ -77,7 +77,6 @@ create table if not exists product_variants (
   product_id  uuid not null references products on delete cascade,
   color       text not null default '',
   color_hex   text,
-  color_hex2  text,                              -- border colour for two-tone sarees
   size        text not null default '',
   sku         text unique,
   stock       int  not null default 0 check (stock >= 0),

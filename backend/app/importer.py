@@ -12,7 +12,7 @@ from .db import get_db
 COLUMNS = ["name", "category", "price", "mrp", "fabric", "description", "care", "color", "color_hex",
            "size", "sku", "stock", "new", "bridal", "clearance", "live", "image_urls",
            "saree_length", "saree_width", "blouse_piece", "composition", "weave", "origin", "occasion",
-           "silk_mark", "video_url", "border_hex"]
+           "silk_mark", "video_url"]
 TEXT_DETAILS = ["saree_length", "saree_width", "blouse_piece", "composition", "weave", "origin", "occasion"]
 REQUIRED = ["name", "category", "price", "stock"]
 YES = {"yes", "y", "true", "1"}
@@ -94,11 +94,9 @@ def run_import(filename: str, data: bytes, dry_run: bool, unique_slug, store_ima
         cat = cat_by.get(r.get("category", "").lower())
         if not cat:
             err(f"Category '{r.get('category')}' not found. Use one of: {', '.join(c['slug'] for c in cats)}."); continue
-        hexv, hex2 = r.get("color_hex", ""), r.get("border_hex", "")
+        hexv = r.get("color_hex", "")
         if hexv and not re.fullmatch(r"#?[0-9A-Fa-f]{6}", hexv):
             err(f"Colour code '{hexv}' should look like #5E1A73."); continue
-        if hex2 and not re.fullmatch(r"#?[0-9A-Fa-f]{6}", hex2):
-            err(f"Border colour code '{hex2}' should look like #C2185B."); continue
         flags = {k: _bool(r.get(k), d) for k, d in (("new", False), ("bridal", False), ("clearance", False), ("live", True), ("silk_mark", False))}
         video = r.get("video_url", "")
         if video and not video.startswith("https://"):
@@ -121,7 +119,6 @@ def run_import(filename: str, data: bytes, dry_run: bool, unique_slug, store_ima
         if sku and any(v["sku"] == sku for gg in groups.values() for v in gg["variants"]):
             err(f"SKU '{sku}' is used twice in the file."); continue
         g["variants"].append({"color": r.get("color", ""), "color_hex": ("#" + hexv.lstrip("#")).upper() if hexv else None,
-                              "color_hex2": ("#" + hex2.lstrip("#")).upper() if hex2 else None,
                               "size": r.get("size", ""), "sku": sku, "stock": stock})
         g["images"] += [(u, r.get("color", "")) for u in _split_urls(r.get("image_urls", ""))]
 

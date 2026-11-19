@@ -91,7 +91,6 @@ class VariantIn(BaseModel):
     id: str | None = None
     color: str = Field(default="", max_length=60)
     color_hex: str | None = Field(default=None, pattern=r"^$|^#[0-9A-Fa-f]{6}$")
-    color_hex2: str | None = Field(default=None, pattern=r"^$|^#[0-9A-Fa-f]{6}$")  # border colour (two-tone)
     size: str = Field(default="", max_length=30)
     sku: str | None = Field(default=None, max_length=60)
     stock: int = Field(ge=0, le=100000)
@@ -150,7 +149,7 @@ def _save_variants(product_id: str, variants: list[VariantIn], product_name: str
     if gone:
         db.table("product_variants").delete().in_("id", gone).execute()
     for v in variants:
-        row = {"product_id": product_id, "color": v.color.strip(), "color_hex": v.color_hex or None, "color_hex2": v.color_hex2 or None,
+        row = {"product_id": product_id, "color": v.color.strip(), "color_hex": v.color_hex or None,
                "size": v.size.strip(), "sku": (v.sku or "").strip() or auto_sku(product_name, v.color, v.size), "stock": v.stock}
         if v.id and v.id in current:
             db.table("product_variants").update(row).eq("id", v.id).execute()

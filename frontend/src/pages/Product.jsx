@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import ProductImage from '../components/ProductImage.jsx'
 import { ProductGrid } from '../components/ProductCard.jsx'
 import { WhatsAppIcon } from '../components/Icons.jsx'
 import { useCart } from '../context/CartContext.jsx'
@@ -8,8 +9,6 @@ import { rupees, whatsappLink } from '../lib/config.js'
 import { productWhatsApp, useStoreRules, useTitle } from '../lib/store.js'
 import NotFound from './NotFound.jsx'
 import DeliveryCheck from '../components/DeliveryCheck.jsx'
-import Gallery from '../components/Gallery.jsx'
-import { swatchBg } from '../lib/shades.js'
 
 export default function Product() {
   const { slug } = useParams()
@@ -21,6 +20,7 @@ export default function Product() {
   const [color, setColor] = useState('')
   const [size, setSize] = useState('')
   const [qty, setQty] = useState(1)
+  const [imgIdx, setImgIdx] = useState(0)
   const [added, setAdded] = useState(false)
   const [msg, setMsg] = useState('')
 
@@ -49,6 +49,7 @@ export default function Product() {
     const forColor = p.images.filter((i) => !i.color || i.color === color)
     return forColor.length ? forColor : p.images
   }, [p, color])
+  useEffect(() => { setImgIdx(0) }, [color])
 
   if (status === 'loading') return <section className="container section"><div className="pdp skeleton-block" /></section>
   if (status === 'missing') return <NotFound />
@@ -88,7 +89,20 @@ export default function Product() {
         </nav>
 
         <div className="pdp">
-          <Gallery images={gallery} alt={`${p.name}${color ? ` in ${color}` : ''}`} hex={hex} />
+          <div className="gallery">
+            <div className="gallery-main">
+              <ProductImage src={gallery[imgIdx]?.url} alt={`${p.name}${color ? ` in ${color}` : ''}`} hex={hex} eager />
+            </div>
+            {gallery.length > 1 && (
+              <div className="thumbs">
+                {gallery.map((g, i) => (
+                  <button key={g.url} className={`thumb ${i === imgIdx ? 'active' : ''}`} onClick={() => setImgIdx(i)} aria-label={`Photo ${i + 1}`}>
+                    <img src={g.url} alt="" loading="lazy" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
           <div className="pdp-info">
             <div className="pcard-tags static">
@@ -110,7 +124,7 @@ export default function Product() {
                 <div className="swatches">
                   {p.colors.map((c) => (
                     <button key={c.name} type="button" className={`swatch ${c.name === color ? 'active' : ''} ${colorStock(c.name) ? '' : 'out'}`}
-                      style={{ background: swatchBg(c.hex, c.hex2) }} onClick={() => setColor(c.name)}
+                      style={{ background: c.hex || '#ccc' }} onClick={() => setColor(c.name)}
                       aria-label={`${c.name}${colorStock(c.name) ? '' : ' (sold out)'}`} aria-pressed={c.name === color} />
                   ))}
                 </div>
