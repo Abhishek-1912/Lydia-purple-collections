@@ -5,7 +5,7 @@ React (Vite) on **Vercel** · FastAPI on **Railway** · **Supabase** (Postgres, 
 
 ```
 supabase/    schema.sql (fresh install), seed.sql (sample data), migrations/
-backend/     FastAPI app (app/), tests/, railway.json, Procfile
+backend/     FastAPI app (app/), tests/, Procfile
 frontend/    React app (src/), public/ (sample import files), vercel.json
 ```
 
@@ -94,13 +94,19 @@ git push -u origin main
 
 ### Railway (API)
 1. New Project → Deploy from GitHub repo → pick the repo.
-2. Service → Settings → **Root Directory** = `backend`. Railway reads `railway.json` (start command, `/api/health` check, restart on failure) and `.python-version` (3.12).
+2. Service → Settings:
+   - **Root Directory** = `backend` (Railpack reads `requirements.txt` and `.python-version` → Python 3.12)
+   - **Region** = Southeast Asia (Singapore), closest to Supabase Mumbai
+   - **Watch Paths** = `/backend/**`
+   - **Start Command** = `uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips '*'`
+   - **Healthcheck Path** = `/api/health`, Restart Policy = On Failure. Leave Serverless **off** (the unpaid-order expiry job must keep running).
 3. Variables → add everything from `backend/.env`. Set `CORS_ORIGINS` to your Vercel URL (add the custom domain later).
-4. Settings → Networking → **Generate Domain**. Open `https://<railway-domain>/api/health` → `{"ok":true}`.
+4. Settings → Networking → **Generate Domain** (port 8080). Open `https://<railway-domain>/api/health` → `{"ok":true}`.
 
 ### Vercel (storefront)
 1. Add New → Project → import the repo. **Root Directory** = `frontend` (framework: Vite, auto-detected).
-2. Environment Variables → add everything from `frontend/.env`, with `VITE_API_URL` = the Railway URL.
+2. Environment Variables → **Import .env** with a copy of `frontend/.env` where `VITE_API_URL` = the Railway URL
+   (full `https://…`, no trailing slash). Local copies like `.env.vercel` are git-ignored.
 3. Deploy. `vercel.json` sends every route to the React app, so `/products/...` links work on refresh.
 4. Back in Railway, make sure `CORS_ORIGINS` contains the Vercel URL. In Supabase, add it to Site URL / Redirect URLs.
 
