@@ -48,6 +48,7 @@ class OrderIn(BaseModel):
     items: list[CartItem] = Field(min_length=1, max_length=50)
     coupon_code: str | None = Field(default=None, max_length=40)
     payment_method: Literal["razorpay", "cod"]
+    session_id: str | None = Field(default=None, max_length=64)   # links the abandoned-checkout draft
 
 
 class VerifyIn(BaseModel):

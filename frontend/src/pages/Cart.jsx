@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Link, useNavigate } from 'react-router-dom'
 import ProductImage from '../components/ProductImage.jsx'
 import { WhatsAppIcon } from '../components/Icons.jsx'
@@ -9,7 +10,20 @@ import { cartWhatsApp, lineLabel, useStoreRules, useTitle } from '../lib/store.j
 
 export default function Cart() {
   useTitle('Your cart')
-  const { items, setQty, remove } = useCart()
+  const { items, setQty, remove, add } = useCart()
+  const [params, setParams] = useSearchParams()
+  const [restored, setRestored] = useState('')
+  // "Restore my cart" link from a WhatsApp reminder: /cart?restore=<draft id>
+  const restoreDone = useRef(false)
+  useEffect(() => {
+    const id = params.get('restore')
+    if (!id || restoreDone.current) return
+    restoreDone.current = true // run once, even if React starts the page twice
+    api(`/api/checkout/draft/${id}/items`).then((lines) => {
+      lines.forEach((l) => { if (!items.some((i) => i.variant_id === l.variant_id)) add({ variant_id: l.variant_id }, l.qty) })
+      setRestored('Your saved cart is back. Prices and stock are checked again below.')
+    }).catch((e) => setRestored(e.message)).finally(() => setParams({}, { replace: true }))
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
   const rules = useStoreRules()
   const navigate = useNavigate()
   const [quote, setQuote] = useState(null)
@@ -29,6 +43,7 @@ export default function Cart() {
     return (
       <section className="container page-narrow center">
         <h1>Your cart is empty</h1>
+        {restored && <p className="alert alert-error" role="status">{restored}</p>}
         <p className="display">A beautiful saree is waiting for you.</p>
         <Link to="/collections/sarees" className="btn btn-primary">Shop sarees</Link>
       </section>
@@ -39,11 +54,12 @@ export default function Cart() {
   const subtotal = quote?.subtotal ?? items.reduce((n, i) => n + i.price * i.qty, 0)
   const remaining = quote?.free_shipping_remaining ?? Math.max(0, rules.free_shipping_above - subtotal)
   const pct = Math.min(100, Math.round(((rules.free_shipping_above - remaining) / rules.free_shipping_above) * 100))
-  const waLines = items.map((i) => ({ ...i, price: lineFor(i.variant_id)?.price ?? i.price }))
+  const waLines = items.map((i) => { const l = lineFor(i.variant_id); return { ...i, name: l?.name || i.name, color: l?.color ?? i.color, size: l?.size ?? i.size, price: l?.price ?? i.price } })
 
   return (
     <section className="container section">
       <h1>Your cart</h1>
+      {restored && <p className="alert alert-ok" role="status">{restored}</p>}
 
       <div className="ship-bar" aria-live="polite">
         <p>{remaining > 0 ? <>Add <strong>{rupees(remaining)}</strong> more for <strong>free shipping</strong></> : <>🎉 You've unlocked <strong>free shipping</strong></>}</p>
@@ -60,12 +76,12 @@ export default function Cart() {
             const l = lineFor(i.variant_id)
             return (
               <li key={i.variant_id} className="cart-line">
-                <Link to={`/products/${i.slug}`} className="cart-thumb" tabIndex={-1} aria-hidden="true">
+                <Link to={`/products/${l?.slug || i.slug || ''}`} className="cart-thumb" tabIndex={-1} aria-hidden="true">
                   <ProductImage src={l?.image || i.image} alt="" />
                 </Link>
                 <div className="cart-info">
-                  <Link to={`/products/${i.slug}`} className="cart-name">{l?.name || i.name}</Link>
-                  {lineLabel(i) && <p className="small muted">{lineLabel(i)}</p>}
+                  <Link to={`/products/${l?.slug || i.slug || ''}`} className="cart-name">{l?.name || i.name}</Link>
+                  {lineLabel(l || i) && <p className="small muted">{lineLabel(l || i)}</p>}
                   <p className="price">{rupees(l?.price ?? i.price)}</p>
                   {l?.error && <p className="line-error" role="alert">{l.error}</p>}
                   <div className="cart-controls">

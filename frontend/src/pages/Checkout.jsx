@@ -6,6 +6,7 @@ import { api } from '../lib/api.js'
 import { rupees, SHOP_NAME } from '../lib/config.js'
 import { STATES } from '../lib/india.js'
 import { loadRazorpay } from '../lib/razorpay.js'
+import { sessionId } from '../lib/session.js'
 import { lineLabel, useStoreRules, useTitle } from '../lib/store.js'
 
 const SAVED = 'lpc_checkout_v1'
@@ -69,6 +70,20 @@ export default function Checkout() {
   const payMethod = method || (rules.razorpay_enabled ? 'razorpay' : 'cod')
   const key = items.map((i) => `${i.variant_id}:${i.qty}`).join(',')
 
+  // Save an unfinished-checkout draft once a valid mobile is entered (so the shop can help if it isn't completed)
+  useEffect(() => {
+    const sid = sessionId()
+    if (!sid || !/^[6-9]\d{9}$/.test(form.phone) || !items.length || placing.current) return
+    const t = setTimeout(() => {
+      api('/api/checkout/draft', { method: 'POST', body: {
+        session_id: sid, name: form.name.trim(), phone: form.phone, email: form.email.trim(),
+        items: items.map((i) => ({ variant_id: i.variant_id, qty: i.qty, name: i.name || '', price: i.price || 0 })),
+      } }).catch(() => {})
+    }, 1500)
+    return () => clearTimeout(t)
+  }, [form.phone, form.name, form.email, key]) // eslint-disable-line react-hooks/exhaustive-deps
+
+
   useEffect(() => {
     if (!items.length) return
     api('/api/cart/quote', { method: 'POST', body: { items: items.map(({ variant_id, qty }) => ({ variant_id, qty })), coupon_code: coupon || null, payment_method: payMethod } })
@@ -123,6 +138,7 @@ export default function Checkout() {
       items: items.map(({ variant_id, qty }) => ({ variant_id, qty })),
       coupon_code: coupon || null,
       payment_method: payMethod,
+      session_id: sessionId(),
     }
     let order
     try {
@@ -186,7 +202,7 @@ export default function Checkout() {
             <Field id="name" label="Full name" error={errors.name}>
               <input id="name" type="text" autoComplete="name" value={form.name} onChange={set('name')} {...aria('name')} />
             </Field>
-            <Field id="phone" label="Mobile number" error={errors.phone} hint="We’ll send order updates on WhatsApp.">
+            <Field id="phone" label="Mobile number" error={errors.phone} hint="We’ll send order updates on WhatsApp. If checkout isn’t finished, we may message you once to help.">
               <div className="prefix-input"><span>+91</span>
                 <input id="phone" type="tel" inputMode="numeric" autoComplete="tel-national" value={form.phone} onChange={set('phone')} {...aria('phone')} />
               </div>

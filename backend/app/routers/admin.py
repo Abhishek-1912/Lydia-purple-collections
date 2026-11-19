@@ -65,6 +65,15 @@ def store_image(product_id: str, data: bytes, color: str | None) -> dict:
 
 
 # ───────────── stats ─────────────
+def _abandoned_count() -> int:
+    try:
+        now = datetime.now(timezone.utc)
+        return len(get_db().table("checkout_drafts").select("id").is_("order_id", "null").is_("contacted_at", "null")
+                   .lte("updated_at", (now - timedelta(minutes=30)).isoformat())
+                   .gte("updated_at", (now - timedelta(days=7)).isoformat()).execute().data)
+    except Exception:
+        return 0
+
 def _variant_image(images: list[dict], color: str) -> str | None:
     """Best photo for a colour: one tagged with that colour, else the product's main photo."""
     imgs = sorted(images, key=lambda i: (i["color"] not in (None, color), i["color"] is None, i["sort_order"]))
@@ -88,6 +97,7 @@ def stats():
         "to_pack": count(status="confirmed"),
         "to_ship": count(status="packed"),
         "needs_review": count(needs_review=True),
+        "abandoned": _abandoned_count(),
         "low_stock_threshold": threshold,
         "low_stock": [{"variant_id": v["id"], "product_id": v["products"]["id"], "name": v["products"]["name"],
                        "slug": v["products"]["slug"], "color": v["color"], "color_hex": v["color_hex"],

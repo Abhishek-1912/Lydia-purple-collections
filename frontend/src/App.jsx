@@ -26,6 +26,7 @@ const Staff = lazy(() => import('./pages/admin/Staff.jsx'))
 const PrintSlips = lazy(() => import('./pages/admin/PrintSlips.jsx'))
 const EasyAdd = lazy(() => import('./pages/admin/EasyAdd.jsx'))
 const AdminReviews = lazy(() => import('./pages/admin/AdminReviews.jsx'))
+const Abandoned = lazy(() => import('./pages/admin/Abandoned.jsx'))
 import NotFound from './pages/NotFound.jsx'
 
 export default function App() {
@@ -62,6 +63,7 @@ export default function App() {
           <Route path="print" element={<PrintSlips />} />
           <Route path="add" element={<EasyAdd />} />
           <Route path="reviews" element={<AdminReviews />} />
+          <Route path="abandoned" element={<Abandoned />} />
         </Route>
         <Route path="*" element={<NotFound />} />
       </Route>

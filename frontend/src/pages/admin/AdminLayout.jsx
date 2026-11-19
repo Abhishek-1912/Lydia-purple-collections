@@ -23,6 +23,7 @@ export default function AdminLayout() {
           <NavLink to="/admin/add" className="nav-add">➕ Add product</NavLink>
           <NavLink to="/admin" end>Dashboard</NavLink>
           <NavLink to="/admin/orders">Orders</NavLink>
+          <NavLink to="/admin/abandoned">Abandoned</NavLink>
           <NavLink to="/admin/products">Products</NavLink>
           <NavLink to="/admin/customers">Customers</NavLink>
           <NavLink to="/admin/reviews">Reviews</NavLink>

@@ -56,6 +56,7 @@ export default function Policies() {
       <h2 id="privacy">Privacy</h2>
       <ul>
         <li>We collect your name, phone, email and address only to process and deliver your order, and to send you order updates.</li>
+        <li>If you enter your mobile number at checkout but don’t finish the order, we keep your cart for up to 60 days and may send you one WhatsApp message to help you complete it.</li>
         <li>We never sell or rent your data. We share it only with our courier and payment partners as needed to complete your order.</li>
         <li>Your data is stored securely on servers in India.</li>
         <li>To see, change or delete your details, sign in to <Link to="/account">My account</Link> or contact us.</li>

@@ -110,6 +110,8 @@ def create_order(body: OrderIn, request: Request, background: BackgroundTasks, u
         raise HTTPException(500, "We couldn't place your order. Please try again.")
 
     order_id, order_no = placed["id"], placed["order_no"]
+    from .drafts import mark_converted
+    mark_converted(body.session_id, order_id)
     result = {"id": order_id, "order_no": order_no, "payment_method": body.payment_method, "total": q["total"]}
 
     if body.payment_method == "cod":

@@ -20,6 +20,7 @@ export default function Dashboard() {
     { label: 'To pack', value: s.to_pack, to: '/admin/orders?status=confirmed', hot: s.to_pack > 0 },
     { label: 'To ship', value: s.to_ship, to: '/admin/orders?status=packed', hot: s.to_ship > 0 },
     { label: 'Needs review', value: s.needs_review, to: '/admin/orders?review=1', hot: s.needs_review > 0 },
+    { label: 'Abandoned carts (7 days)', value: s.abandoned ?? 0, to: '/admin/abandoned', hot: s.abandoned > 0 },
   ]
   return (
     <>

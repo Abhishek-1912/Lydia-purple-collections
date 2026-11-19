@@ -32,6 +32,8 @@ class Settings(BaseSettings):
     whatsapp_phone_number_id: str = ""
     whatsapp_template_order: str = ""
     whatsapp_template_shipped: str = ""
+    whatsapp_template_cart: str = ""      # abandoned-cart reminder template (off when blank)
+    site_url: str = ""                    # e.g. https://lydiapurple.in — used in reminder links
     shop_whatsapp: str = ""
 
     @property

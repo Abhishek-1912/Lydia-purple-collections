@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from .config import get_settings
-from .routers import account, admin, catalog, checkout, reviews
+from .routers import account, admin, catalog, checkout, drafts, reviews
 
 settings = get_settings()
 logging.basicConfig(level=logging.INFO)
@@ -19,6 +19,10 @@ async def _expiry_loop():
     while True:
         await asyncio.sleep(300)
         await asyncio.to_thread(checkout.release_expired)
+        try:
+            await asyncio.to_thread(drafts.auto_remind)   # does nothing until WhatsApp cart template is set
+        except Exception:
+            logging.getLogger("drafts").exception("auto_remind failed")
 
 
 @asynccontextmanager
@@ -59,6 +63,7 @@ app.include_router(checkout.router)
 app.include_router(account.router)
 app.include_router(admin.router)
 app.include_router(reviews.router)
+app.include_router(drafts.router)
 
 
 @app.get("/api/health")
