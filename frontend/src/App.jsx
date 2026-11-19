@@ -23,6 +23,7 @@ const Categories = lazy(() => import('./pages/admin/Categories.jsx'))
 const Customers = lazy(() => import('./pages/admin/Customers.jsx'))
 const Staff = lazy(() => import('./pages/admin/Staff.jsx'))
 const PrintSlips = lazy(() => import('./pages/admin/PrintSlips.jsx'))
+const EasyAdd = lazy(() => import('./pages/admin/EasyAdd.jsx'))
 import NotFound from './pages/NotFound.jsx'
 
 export default function App() {
@@ -56,6 +57,7 @@ export default function App() {
           <Route path="customers" element={<Customers />} />
           <Route path="staff" element={<Staff />} />
           <Route path="print" element={<PrintSlips />} />
+          <Route path="add" element={<EasyAdd />} />
         </Route>
         <Route path="*" element={<NotFound />} />
       </Route>

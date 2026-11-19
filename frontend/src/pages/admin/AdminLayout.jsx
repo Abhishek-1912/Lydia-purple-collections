@@ -20,6 +20,7 @@ export default function AdminLayout() {
     <div className="admin">
       <nav className="admin-nav" aria-label="Admin">
         <div className="container">
+          <NavLink to="/admin/add" className="nav-add">➕ Add product</NavLink>
           <NavLink to="/admin" end>Dashboard</NavLink>
           <NavLink to="/admin/orders">Orders</NavLink>
           <NavLink to="/admin/products">Products</NavLink>

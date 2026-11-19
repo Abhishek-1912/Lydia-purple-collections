@@ -142,6 +142,11 @@ The WhatsApp buttons on the site (order, notify me, live video) work without any
 
 ## 8. Running the shop (admin)
 
+- **➕ Add product (easy, for daily use on a phone)** — 6 simple screens: take/choose photos → tap Saree/Blouse/Kurti and the saree
+  type (Kanjivaram, Banarasi, Soft silk, Pochampally, Gadwal, Uppada…; details fill in automatically) → price → tap colours and
+  +/- stock (sizes for blouses/kurtis) → tap which colour each photo is → name is suggested → Save. Then **Add similar** for the
+  next colour/design. Photos are shrunk automatically; SKUs are created automatically. Excel import is still there for bulk work.
+
 - **Settings** — shipping fee, free-shipping limit, COD fee/limit, shop PIN, WhatsApp, phone, email, address, hours,
   Instagram and the announcement bar. Takes effect immediately; no redeploy. Blank contact fields are hidden on the site.
 - **Categories** — add, rename, reorder, show/hide (e.g. switch on Blouses). Slugs stay the same so links don't break.

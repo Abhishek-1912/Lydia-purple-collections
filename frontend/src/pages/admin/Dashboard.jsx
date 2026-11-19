@@ -22,6 +22,10 @@ export default function Dashboard() {
   return (
     <>
       <h1 className="admin-h">Dashboard</h1>
+      <Link to="/admin/add" className="easy-cta">
+        <span className="easy-big">➕📸</span>
+        <span><strong>Add a new product</strong><br /><small>Take photos, tap the type, price and colours — done in a minute</small></span>
+      </Link>
       <div className="stat-grid">
         {tiles.map((t) => (
           <Link key={t.label} to={t.to} className={`stat ${t.hot ? 'hot' : ''}`}>

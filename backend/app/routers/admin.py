@@ -132,7 +132,16 @@ def _check(body: ProductIn):
         raise HTTPException(400, "Two variants have the same SKU.")
 
 
-def _save_variants(product_id: str, variants: list[VariantIn]):
+def auto_sku(name: str, color: str, size: str) -> str:
+    """Readable unique SKU for rows added without one, e.g. KSS-4F2A-PUR-M (Kanjivaram Silk Saree, Purple, M)."""
+    words = [w for w in re.findall(r"[A-Za-z]+", name) if w.lower() not in ("and", "with", "the", "of")]
+    initials = "".join(w[0] for w in words[:3]).upper() or "LPC"
+    parts = [initials, uuid.uuid4().hex[:4].upper(), re.sub(r"[^A-Z]", "", color.upper())[:3] or None,
+             re.sub(r"[^A-Z0-9]", "", size.upper())[:4] or None]
+    return "-".join(p for p in parts if p)
+
+
+def _save_variants(product_id: str, variants: list[VariantIn], product_name: str = ""):
     db = get_db()
     keep = [v.id for v in variants if v.id]
     current = [r["id"] for r in db.table("product_variants").select("id").eq("product_id", product_id).execute().data]
@@ -141,7 +150,7 @@ def _save_variants(product_id: str, variants: list[VariantIn]):
         db.table("product_variants").delete().in_("id", gone).execute()
     for v in variants:
         row = {"product_id": product_id, "color": v.color.strip(), "color_hex": v.color_hex or None,
-               "size": v.size.strip(), "sku": (v.sku or "").strip() or None, "stock": v.stock}
+               "size": v.size.strip(), "sku": (v.sku or "").strip() or auto_sku(product_name, v.color, v.size), "stock": v.stock}
         if v.id and v.id in current:
             db.table("product_variants").update(row).eq("id", v.id).execute()
         else:
@@ -189,7 +198,7 @@ def create_product(body: ProductIn):
     data = body.model_dump(exclude={"variants"}) | {"slug": unique_slug(body.name)}
     pid = get_db().table("products").insert(data).execute().data[0]["id"]
     try:
-        _save_variants(pid, body.variants)
+        _save_variants(pid, body.variants, body.name)
     except Exception as e:
         get_db().table("products").delete().eq("id", pid).execute()
         _db_error(e)
@@ -205,7 +214,7 @@ def update_product(pid: str, body: ProductIn):
         data["slug"] = unique_slug(body.name, exclude_id=pid)
     get_db().table("products").update(data).eq("id", pid).execute()
     try:
-        _save_variants(pid, body.variants)
+        _save_variants(pid, body.variants, body.name)
     except Exception as e:
         _db_error(e)
     return _product(pid)

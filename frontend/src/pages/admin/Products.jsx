@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import ProductImage from '../../components/ProductImage.jsx'
 import { useAuthedApi } from '../../context/AuthContext.jsx'
+import { compressImage } from '../../lib/compressImage.js'
 import { rupees } from '../../lib/config.js'
 
 function ImportPanel({ onDone }) {
@@ -76,10 +77,9 @@ function PhotoPanel({ onDone }) {
       const f = files[i]
       setProgress({ done: i, total: files.length })
       let r
-      if (f.size > 5 * 1024 * 1024) r = { file: f.name, error: 'Larger than 5 MB — please compress it.' }
-      else {
+      {
         const fd = new FormData()
-        fd.append('file', f, f.name)
+        try { const small = await compressImage(f); fd.append('file', small, small.name) } catch (err) { setResults((all) => [...all, { file: f.name, error: err.message }]); continue }
         try { r = await call('/api/admin/images/by-sku', { method: 'POST', body: fd }) } catch (err) { r = { file: f.name, error: err.message } }
       }
       setResults((all) => [...all, r])
@@ -186,7 +186,8 @@ export default function Products() {
         <div className="row-gap">
           <button className="btn btn-outline btn-sm" onClick={() => { setShowImport(!showImport); setShowPhotos(false) }}>{showImport ? 'Close upload' : 'Bulk upload'}</button>
           <button className="btn btn-outline btn-sm" onClick={() => { setShowPhotos(!showPhotos); setShowImport(false) }}>{showPhotos ? 'Close photos' : 'Bulk photos'}</button>
-          <Link to="/admin/products/new" className="btn btn-primary btn-sm">+ Add product</Link>
+          <Link to="/admin/add" className="btn btn-primary btn-sm">➕ Add product</Link>
+          <Link to="/admin/products/new" className="btn btn-outline btn-sm">Advanced form</Link>
         </div>
       </div>
       {showImport && <ImportPanel onDone={load} />}

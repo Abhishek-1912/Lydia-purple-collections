@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAuthedApi } from '../../context/AuthContext.jsx'
+import { compressImage } from '../../lib/compressImage.js'
 
 const BLANK = { name: '', category_id: '', fabric: '', price: '', mrp: '', description: '', care: '', is_active: true, is_new: true, is_bridal: false, is_clearance: false, sort_order: 0, saree_length: '', saree_width: '', blouse_piece: '', composition: '', weave: '', origin: '', occasion: '', silk_mark: false, video_url: '' }
 const DETAIL_KEYS = ['saree_length', 'saree_width', 'blouse_piece', 'composition', 'weave', 'origin', 'occasion', 'video_url']
@@ -67,11 +68,11 @@ export default function ProductForm() {
     const files = [...e.target.files]
     e.target.value = ''
     for (const f of files) {
-      if (!/^image\/(jpeg|png|webp)$/.test(f.type)) { setMsg({ type: 'error', text: `${f.name}: only JPG, PNG or WebP.` }); continue }
-      if (f.size > 5 * 1024 * 1024) { setMsg({ type: 'error', text: `${f.name} is over 5 MB. Please compress it.` }); continue }
       setUploading((n) => n + 1)
+      let small
+      try { small = await compressImage(f) } catch (err) { setMsg({ type: 'error', text: err.message }); setUploading((n) => n - 1); continue }
       const fd = new FormData()
-      fd.append('file', f)
+      fd.append('file', small, small.name)
       fd.append('color', upColor)
       try {
         const img = await call(`/api/admin/products/${id}/images`, { method: 'POST', body: fd })
@@ -185,10 +186,10 @@ export default function ProductForm() {
               </label>
               <label className="btn btn-primary btn-sm file-btn">
                 {uploading ? `Uploading ${uploading}…` : 'Upload photos'}
-                <input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={upload} className="sr-only" />
+                <input type="file" accept="image/*" multiple onChange={upload} className="sr-only" />
               </label>
             </div>
-            <p className="small muted">JPG, PNG or WebP, up to 5 MB each. Portrait (3:4) photos look best. First photo is the main one.</p>
+            <p className="small muted">Any phone photo works — big photos are made smaller automatically. Portrait (3:4) in daylight looks best. First photo is the main one.</p>
             <div className="photo-grid">
               {images.map((img) => (
                 <div key={img.id} className="photo">
