@@ -17,7 +17,7 @@ The server owns every price, total and stock decision. The browser only talks to
 
 1. Create a project in region **Mumbai (ap-south-1)**.
 2. SQL Editor → run `supabase/schema.sql`, then `supabase/seed.sql` (sample products — optional).
-   *Existing project from before the product-details change? Run `supabase/migrations/001_product_details.sql`.*
+   *Existing project? Run any files in `supabase/migrations/` you haven't run yet, in order (001, 002, …).*
 3. Project Settings → API: copy **Project URL**, **anon key**, **service_role key**.
 4. **Sign-in emails** — Authentication → Emails → SMTP Settings → enable custom SMTP (Resend):
    host `smtp.resend.com`, port `465`, user `resend`, password = Resend API key, sender = your Resend sender.
@@ -150,21 +150,33 @@ The WhatsApp buttons on the site (order, notify me, live video) work without any
 - **Bulk upload** — Products → Bulk upload. Download `sample-products.xlsx` (has a "How to fill" sheet). One row per colour/size;
   same name = same product. **Check file** first; nothing saves until **Import**. Re-importing a name updates price and stock.
   Photos: `image_urls` column (Google Drive links shared "Anyone with the link" work) or upload per product.
+- **Block COD** — on any order, **Block COD** stops that phone number using Cash on Delivery (they can still pay online).
+  Automatic limits: 6 orders per hour per connection, and at most 2 unshipped COD orders per phone.
+- **Download CSV** (Orders page) — every order, one row per item, for accounts/GST and courier booking.
 - **Coupons** — percent (with cap) or flat, minimum order, dates, usage limit. Codes are case-insensitive for shoppers.
 - **Hidden categories** — Blouses starts hidden. To show it: `update categories set is_active = true where slug = 'blouses';`
 
-## 9. Tests
+## 9. Sharing, search and stats
+
+- **WhatsApp / Instagram / Facebook link previews**: product links show photo, name, price and offer. Handled by
+  `frontend/api/preview.js` (Vercel function) — only social-app crawlers are sent there; shoppers get the normal site.
+  Products without photos use `frontend/public/og-default.png`.
+- **`/sitemap.xml`** lists every live product and collection; **`/robots.txt`** points to it. Both follow your domain automatically.
+  After launch, submit `https://<domain>/sitemap.xml` in Google Search Console.
+- **Visitor stats**: Vercel → Project → **Analytics** → Enable (free on Hobby). Shows visits, top pages and countries.
+
+## 10. Tests
 
 ```bash
 cd backend && source .venv/bin/activate && pytest -q
 ```
 Covers pricing, coupons, COD limit, shipping-after-discount, delivery estimates, Razorpay signatures, and alert safety.
 
-## 10. Before launch checklist
+## 11. Before launch checklist
 
 - [ ] Real shop phone, WhatsApp, email, address, hours in `frontend` variables
 - [ ] Final store rules (shipping fee, free-shipping threshold, COD fee/limit) and `SHOP_PIN`
-- [ ] Return policy wording confirmed (48-hour window is a placeholder in `frontend/src/pages/Policies.jsx`)
+- [ ] Return policy and Terms wording confirmed (`frontend/src/pages/Policies.jsx`, `Terms.jsx`; 48-hour window is a placeholder)
 - [ ] Domain verified in Resend; `EMAIL_FROM` and Supabase SMTP sender use it
 - [ ] Razorpay live keys + live webhook; one real ₹1 test order paid and refunded
 - [ ] End-to-end: one COD order (place → pack → ship with tracking → deliver) and one Razorpay test order

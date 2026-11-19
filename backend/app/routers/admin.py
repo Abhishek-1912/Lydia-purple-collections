@@ -1,8 +1,11 @@
+import csv
+import io
 import re
 import uuid
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
+from fastapi.responses import Response
 from pydantic import BaseModel, Field
 
 from .. import notify, services
@@ -289,6 +292,31 @@ ORDER_FIELDS = ("id,order_no,user_id,customer_name,phone,email,address,subtotal,
                 "order_items(name,color,size,image_url,price,qty)")
 
 
+def _with_blocked(orders: list[dict]) -> list[dict]:
+    phones = list({o["phone"] for o in orders})
+    blocked = {r["phone"] for r in get_db().table("blocked_phones").select("phone").in_("phone", phones).execute().data} if phones else set()
+    for o in orders:
+        o["cod_blocked"] = o["phone"] in blocked
+    return orders
+
+
+class BlockIn(BaseModel):
+    blocked: bool
+    reason: str | None = Field(default=None, max_length=200)
+
+
+@router.put("/blocked-phones/{phone}")
+def set_blocked(phone: str, body: BlockIn):
+    if not re.fullmatch(r"[6-9][0-9]{9}", phone):
+        raise HTTPException(400, "Invalid phone number.")
+    db = get_db()
+    if body.blocked:
+        db.table("blocked_phones").upsert({"phone": phone, "reason": body.reason}).execute()
+    else:
+        db.table("blocked_phones").delete().eq("phone", phone).execute()
+    return {"phone": phone, "blocked": body.blocked}
+
+
 @router.get("/orders")
 def list_orders(status: str | None = None, q: str | None = None, needs_review: bool = False, limit: int = 100):
     query = get_db().table("orders").select(ORDER_FIELDS).order("created_at", desc=True).limit(min(limit, 300))
@@ -306,7 +334,44 @@ def list_orders(status: str | None = None, q: str | None = None, needs_review: b
             query = query.ilike("phone", f"%{digits[-10:]}%")
         else:
             query = query.ilike("customer_name", f"%{t}%")
-    return query.execute().data
+    return _with_blocked(query.execute().data)
+
+
+@router.get("/orders/export")
+def export_orders(status: str | None = None):
+    """All orders (or one status) as CSV — one row per item, for accounts/GST and courier booking."""
+    db, rows, start = get_db(), [], 0
+    while True:  # page through everything
+        q = db.table("orders").select(ORDER_FIELDS).order("created_at", desc=True).range(start, start + 999)
+        if status:
+            q = q.eq("status", status)
+        batch = q.execute().data
+        rows += batch
+        if len(batch) < 1000:
+            break
+        start += 1000
+    out = io.StringIO()
+    w = csv.writer(out)
+    w.writerow(["Order", "Date (IST)", "Status", "Payment method", "Payment status", "Razorpay payment ID",
+                "Customer", "Phone", "Email", "Address", "City", "State", "PIN",
+                "Item", "Colour", "Size", "Qty", "Unit price", "Line total",
+                "Subtotal", "Discount", "Coupon", "Shipping", "COD fee", "Order total", "Courier", "Tracking"])
+    for o in rows:
+        a = o["address"] or {}
+        when = datetime.fromisoformat(o["created_at"]).astimezone(IST).strftime("%Y-%m-%d %H:%M")
+        addr = ", ".join(x for x in (a.get("line1"), a.get("line2"), a.get("landmark") and "Near " + a["landmark"]) if x)
+        for n, it in enumerate(o["order_items"] or [{}]):
+            first = n == 0  # order-level money only on the first line, so columns sum correctly
+            w.writerow([f"LPC{o['order_no']}", when, o["status"], o["payment_method"], o["payment_status"],
+                        o.get("razorpay_payment_id") or "", o["customer_name"], o["phone"], o.get("email") or "",
+                        addr, a.get("city", ""), a.get("state", ""), a.get("pin", ""),
+                        it.get("name", ""), it.get("color", ""), it.get("size", ""), it.get("qty", ""),
+                        it.get("price", ""), (it.get("price") or 0) * (it.get("qty") or 0),
+                        o["subtotal"] if first else "", o["discount"] if first else "", (o["coupon_code"] or "") if first else "",
+                        o["shipping_fee"] if first else "", o["cod_fee"] if first else "", o["total"] if first else "",
+                        o.get("courier") or "", o.get("tracking_number") or ""])
+    return Response("\ufeff" + out.getvalue(), media_type="text/csv; charset=utf-8",
+                    headers={"Content-Disposition": 'attachment; filename="orders.csv"'})
 
 
 class OrderAction(BaseModel):
@@ -364,7 +429,7 @@ def update_order(oid: str, body: OrderAction, background: BackgroundTasks):
         db.rpc("release_order_stock", {"p_order_id": oid}).execute()
     if a == "ship":
         background.add_task(notify.order_shipped, oid)
-    return db.table("orders").select(ORDER_FIELDS).eq("id", oid).execute().data[0]
+    return _with_blocked(db.table("orders").select(ORDER_FIELDS).eq("id", oid).execute().data)[0]
 
 
 # ───────────── coupons ─────────────

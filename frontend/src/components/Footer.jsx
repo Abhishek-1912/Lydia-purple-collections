@@ -26,7 +26,9 @@ export default function Footer() {
             <li><Link to="/contact">Contact us</Link></li>
             <li><Link to="/policies#shipping">Shipping</Link></li>
             <li><Link to="/policies#returns">Returns & Exchange</Link></li>
+            <li><Link to="/policies#cancellation">Cancellation &amp; refunds</Link></li>
             <li><Link to="/policies#privacy">Privacy</Link></li>
+            <li><Link to="/terms">Terms &amp; Conditions</Link></li>
           </ul>
         </div>
         <div>
@@ -39,7 +41,7 @@ export default function Footer() {
           </ul>
         </div>
       </div>
-      <p className="container copyright">© {new Date().getFullYear()} {SHOP_NAME}. Prices include GST.</p>
+      <p className="container copyright">© {new Date().getFullYear()} {SHOP_NAME}{config.address && <> · {config.address}</>}. Prices include GST.</p>
     </footer>
   )
 }

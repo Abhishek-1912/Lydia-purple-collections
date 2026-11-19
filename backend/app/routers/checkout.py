@@ -3,13 +3,26 @@ import logging
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 
-from .. import notify, razorpay_client, services
+from .. import guard, notify, razorpay_client, services
 from ..auth import optional_user
 from ..config import get_settings
 from ..db import get_db
 from ..schemas import AbandonIn, OrderIn, VerifyIn
 
 log = logging.getLogger("checkout")
+order_limiter = guard.RateLimiter(guard.MAX_ORDERS_PER_IP_HOUR, 3600)
+
+
+def client_ip(request: Request) -> str:
+    return request.headers.get("x-forwarded-for", request.client.host if request.client else "?").split(",")[0].strip()
+
+
+def cod_check(phone: str) -> str | None:
+    db = get_db()
+    blocked = bool(db.table("blocked_phones").select("phone").eq("phone", phone).execute().data)
+    open_cod = len(db.table("orders").select("id").eq("phone", phone).eq("payment_method", "cod")
+                   .in_("status", ["confirmed", "packed"]).execute().data)
+    return guard.cod_refusal(blocked, open_cod)
 router = APIRouter(prefix="/api", tags=["checkout"])
 
 PUBLIC_ORDER = (
@@ -47,9 +60,15 @@ def _cancel_unpaid(order_id: str) -> bool:
 
 
 @router.post("/orders")
-def create_order(body: OrderIn, background: BackgroundTasks, user: dict | None = Depends(optional_user)):
+def create_order(body: OrderIn, request: Request, background: BackgroundTasks, user: dict | None = Depends(optional_user)):
     s = get_settings()
+    if not order_limiter.allow(client_ip(request)):
+        raise HTTPException(429, "Too many orders from this connection. Please wait a while or message us on WhatsApp.")
     release_expired()
+    if body.payment_method == "cod":
+        refusal = cod_check(body.phone)
+        if refusal:
+            raise HTTPException(400, {"message": refusal, "code": "COD_REFUSED"})
 
     if body.payment_method == "razorpay" and not s.razorpay_enabled:
         raise HTTPException(400, "Online payment isn't available right now. Please choose Cash on Delivery.")

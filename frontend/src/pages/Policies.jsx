@@ -17,6 +17,7 @@ export default function Policies() {
       <nav className="chips" aria-label="Policy sections">
         <a className="chip" href="#shipping">Shipping</a>
         <a className="chip" href="#payment">Payment & COD</a>
+        <a className="chip" href="#cancellation">Cancellation</a>
         <a className="chip" href="#returns">Returns & exchange</a>
         <a className="chip" href="#privacy">Privacy</a>
       </nav>
@@ -35,6 +36,13 @@ export default function Policies() {
         <li>Pay online by UPI (GPay, PhonePe, Paytm, BHIM), debit/credit card or net banking — processed securely by Razorpay. We never see your card details.</li>
         <li><strong>Cash on Delivery</strong> is available on orders up to {rupees(r.cod_max_order)}, with a {rupees(r.cod_fee)} handling fee. Larger orders must be paid online.</li>
         <li>All prices are in Indian rupees and include GST.</li>
+      </ul>
+
+      <h2 id="cancellation">Cancellation</h2>
+      <ul>
+        <li>Cancel free of charge <strong>before your order is dispatched</strong> — message us on WhatsApp or email with your order number. Online payments are refunded in full within 5–7 working days.</li>
+        <li>Once dispatched, an order can’t be cancelled. Refusing a Cash on Delivery parcel may stop Cash on Delivery on future orders.</li>
+        <li>Full details in our <Link to="/terms#cancellation">Terms &amp; Conditions</Link>.</li>
       </ul>
 
       <h2 id="returns">Returns &amp; exchange</h2>

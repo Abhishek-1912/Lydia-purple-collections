@@ -167,6 +167,13 @@ create trigger t_products_upd before update on products for each row execute fun
 drop trigger if exists t_orders_upd on orders;
 create trigger t_orders_upd before update on orders for each row execute function set_updated_at();
 
+-- Numbers that may not use Cash on Delivery
+create table if not exists blocked_phones (
+  phone      text primary key check (phone ~ '^[6-9][0-9]{9}$'),
+  reason     text,
+  created_at timestamptz not null default now()
+);
+
 -- ───────────────────────── order functions ─────────────────────────
 -- place_order: order + items + stock reservation in ONE transaction.
 -- Raises OUT_OF_STOCK:<variant_id> or COUPON_LIMIT; then nothing is saved.
@@ -303,6 +310,7 @@ alter table product_images   enable row level security;
 alter table coupons          enable row level security;
 alter table orders           enable row level security;
 alter table order_items      enable row level security;
+alter table blocked_phones   enable row level security;
 
 drop policy if exists "own profile"      on profiles;
 create policy "own profile"      on profiles for select using (auth.uid() = id);

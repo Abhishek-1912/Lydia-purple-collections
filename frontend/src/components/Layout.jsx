@@ -6,8 +6,9 @@ import WhatsAppFloat from './WhatsAppFloat.jsx'
 import ErrorBoundary from './ErrorBoundary.jsx'
 
 export default function Layout() {
-  const { pathname } = useLocation()
-  useEffect(() => { window.scrollTo(0, 0) }, [pathname])
+  const { pathname, hash } = useLocation()
+  // New page → top; links to a section (#returns) are scrolled by the page itself
+  useEffect(() => { if (!hash) window.scrollTo(0, 0) }, [pathname, hash])
   return (
     <>
       <a className="skip-link" href="#main">Skip to content</a>

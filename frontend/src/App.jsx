@@ -11,6 +11,7 @@ import Login from './pages/Login.jsx'
 import Account from './pages/Account.jsx'
 import Contact from './pages/Contact.jsx'
 import Policies from './pages/Policies.jsx'
+import Terms from './pages/Terms.jsx'
 const AdminLayout = lazy(() => import('./pages/admin/AdminLayout.jsx'))
 const Dashboard = lazy(() => import('./pages/admin/Dashboard.jsx'))
 const AdminOrders = lazy(() => import('./pages/admin/Orders.jsx'))
@@ -38,6 +39,7 @@ export default function App() {
         <Route path="account" element={<Account />} />
         <Route path="contact" element={<Contact />} />
         <Route path="policies" element={<Policies />} />
+        <Route path="terms" element={<Terms />} />
         <Route path="admin" element={<AdminLayout />}>
           <Route index element={<Dashboard />} />
           <Route path="orders" element={<AdminOrders />} />

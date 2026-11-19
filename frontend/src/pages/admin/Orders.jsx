@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { useAuthedApi } from '../../context/AuthContext.jsx'
-import { rupees, whatsappLink } from '../../lib/config.js'
+import { useAuth, useAuthedApi } from '../../context/AuthContext.jsx'
+import { config, rupees, whatsappLink } from '../../lib/config.js'
 import { orderNo, PAYMENT_LABEL, STATUS_LABEL } from '../../lib/india.js'
 
 const FILTERS = [['', 'All'], ['confirmed', 'To pack'], ['packed', 'To ship'], ['shipped', 'Shipped'], ['delivered', 'Delivered'], ['pending_payment', 'Awaiting payment'], ['cancelled', 'Cancelled']]
 const COURIERS = ['India Post', 'DTDC', 'Delhivery', 'Blue Dart', 'Professional Couriers', 'ST Courier', 'Xpressbees', 'Ekart']
 
-function OrderRow({ o, onChange }) {
+function OrderRow({ o, onChange, onPhoneBlocked }) {
   const call = useAuthedApi()
   const [open, setOpen] = useState(false)
   const [courier, setCourier] = useState(o.courier || '')
@@ -16,6 +16,19 @@ function OrderRow({ o, onChange }) {
   const [msg, setMsg] = useState('')
   const a = o.address || {}
   const when = new Date(o.created_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })
+
+  async function toggleBlock() {
+    const block = !o.cod_blocked
+    const reason = block ? window.prompt(`Block Cash on Delivery for +91 ${o.phone}? They can still pay online.\nReason (optional):`, 'Refused delivery') : null
+    if (block && reason === null) return
+    setBusy(true); setMsg('')
+    try {
+      await call(`/api/admin/blocked-phones/${o.phone}`, { method: 'PUT', body: { blocked: block, reason } })
+      onPhoneBlocked(o.phone, block)
+      setMsg(block ? 'COD blocked for this number.' : 'COD allowed again for this number.')
+    } catch (e) { setMsg(e.message) }
+    setBusy(false)
+  }
 
   async function act(action, confirmText) {
     if (confirmText && !window.confirm(confirmText)) return
@@ -36,7 +49,7 @@ function OrderRow({ o, onChange }) {
       <button className="order-head" onClick={() => setOpen(!open)} aria-expanded={open}>
         <span className="order-no">{orderNo(o.order_no)}</span>
         <span className="order-who">{o.customer_name}<small> · {when}</small></span>
-        <span className={`pill pill-${o.status}`}>{STATUS_LABEL[o.status]}</span>
+        <span className={`pill pill-${o.status}`}>{STATUS_LABEL[o.status]}{o.cod_blocked && ' · COD blocked'}</span>
         <span className="order-total">{rupees(o.total)}<small>{o.payment_method === 'cod' ? ' COD' : ''}</small></span>
       </button>
       {open && (
@@ -78,6 +91,7 @@ function OrderRow({ o, onChange }) {
             {o.needs_review && <button className="btn btn-outline btn-sm" disabled={busy} onClick={() => act('review')}>Mark reviewed</button>}
             {o.payment_status === 'paid' && o.payment_method === 'razorpay' && <button className="btn btn-outline btn-sm" disabled={busy} onClick={() => act('refund', 'Mark as refunded? Do the actual refund in the Razorpay dashboard.')}>Mark refunded</button>}
             {['pending_payment', 'confirmed', 'packed'].includes(o.status) && <button className="btn btn-outline btn-sm danger" disabled={busy} onClick={() => act('cancel', `Cancel ${orderNo(o.order_no)}? Stock goes back to the shop.${o.payment_status === 'paid' ? ' Refund it in Razorpay too.' : ''}`)}>Cancel order</button>}
+            <button className="btn btn-outline btn-sm danger" disabled={busy} onClick={toggleBlock}>{o.cod_blocked ? 'Unblock COD' : 'Block COD'}</button>
             <a className="btn btn-wa btn-sm" href={whatsappLink(waText).replace(/wa\.me\/\d+/, `wa.me/91${o.phone}`)} target="_blank" rel="noreferrer">WhatsApp customer</a>
           </div>
           {msg && <p className="small" role="status">{msg}</p>}
@@ -89,6 +103,7 @@ function OrderRow({ o, onChange }) {
 
 export default function Orders() {
   const call = useAuthedApi()
+  const { getToken } = useAuth()
   const [params, setParams] = useSearchParams()
   const [orders, setOrders] = useState(null)
   const [q, setQ] = useState('')
@@ -106,11 +121,31 @@ export default function Orders() {
     call(`/api/admin/orders?${qs}`).then(setOrders).catch((e) => setError(e.message))
   }, [call, status, review, search])
 
+  const [exporting, setExporting] = useState(false)
+  async function exportCsv() {
+    setExporting(true); setError('')
+    try {
+      const qs = new URLSearchParams()
+      if (status) qs.set('status', status)
+      const token = await getToken()
+      const res = await fetch(`${config.apiUrl}/api/admin/orders/export?${qs}`, { headers: { Authorization: `Bearer ${token}` } })
+      if (!res.ok) throw new Error('Could not export orders. Please try again.')
+      const url = URL.createObjectURL(await res.blob())
+      const a = Object.assign(document.createElement('a'), { href: url, download: `lydia-orders-${new Date().toISOString().slice(0, 10)}${status ? '-' + status : ''}.csv` })
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (e) { setError(e.message) }
+    setExporting(false)
+  }
+
   const setFilter = (k, v) => { const n = new URLSearchParams(params); v ? n.set(k, v) : n.delete(k); setParams(n, { replace: true }) }
 
   return (
     <>
-      <h1 className="admin-h">Orders</h1>
+      <div className="admin-title-row">
+        <h1 className="admin-h">Orders</h1>
+        <button className="btn btn-outline btn-sm" onClick={exportCsv} disabled={exporting}>{exporting ? 'Preparing…' : 'Download CSV'}</button>
+      </div>
       <datalist id="couriers">{COURIERS.map((c) => <option key={c} value={c} />)}</datalist>
       <form className="search" onSubmit={(e) => { e.preventDefault(); setFilter('q', q.trim()) }}>
         <label htmlFor="oq" className="sr-only">Search orders</label>
@@ -124,7 +159,8 @@ export default function Orders() {
       {error && <p className="alert alert-error">{error}</p>}
       {!orders ? <div className="skeleton-block" /> : orders.length ? (
         <ul className="order-list">
-          {orders.map((o) => <OrderRow key={o.id} o={o} onChange={(n) => setOrders((all) => all.map((x) => x.id === n.id ? n : x))} />)}
+          {orders.map((o) => <OrderRow key={o.id} o={o} onChange={(n) => setOrders((all) => all.map((x) => x.id === n.id ? n : x))}
+            onPhoneBlocked={(phone, blocked) => setOrders((all) => all.map((x) => x.phone === phone ? { ...x, cod_blocked: blocked } : x))} />)}
         </ul>
       ) : <p className="muted">No orders here.</p>}
     </>
