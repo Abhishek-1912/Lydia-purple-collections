@@ -11,6 +11,10 @@ const SECTIONS = [
     ['shop_pin', 'Shop PIN code (for delivery dates)', 'pin'], ['dispatch_days', 'Days to pack before courier pickup', 'num'],
     ['low_stock', 'Warn me when stock is at or below (pieces)', 'num'],
   ] },
+  { title: 'Saree add-ons (online payment only)', note: 'Offered on sarees once online payment is switched on. Set a price to 0 to stop offering that add-on. Blouse measurements are asked for at checkout.', fields: [
+    ['addon_fall', 'Fall & edging (₹)', 'num'], ['addon_blouse_regular', 'Blouse stitching — Regular (₹)', 'num'],
+    ['addon_blouse_designer', 'Blouse stitching — Designer (₹)', 'num'], ['addon_shapewear', 'Saree shapewear (₹, 0 = not offered)', 'num'],
+  ] },
   { title: 'Shop contact details', note: 'Shown in the footer (Reach us), Contact page, packing slips and every WhatsApp button. Blank fields are hidden.', fields: [
     ['whatsapp', 'WhatsApp number (10 digits)', 'tel'], ['phone', 'Phone (as shown to customers)', 'text'],
     ['email', 'Shop email (also receives new-order alerts)', 'email'], ['address', 'Shop address', 'text'],

@@ -49,7 +49,7 @@ export default function PrintSlips() {
               <div className={`slip-pay ${cod ? 'cod' : ''}`}>{cod ? `CASH ON DELIVERY — COLLECT ${rupees(collect)}` : 'PREPAID — DO NOT COLLECT CASH'}</div>
               <table className="slip-items">
                 <thead><tr><th>Item</th><th>Colour / size</th><th>Qty</th><th>✓</th></tr></thead>
-                <tbody>{o.order_items.map((it, i) => <tr key={i}><td>{it.name}</td><td>{[it.color, it.size].filter(Boolean).join(' / ') || '—'}</td><td>{it.qty}</td><td>☐</td></tr>)}</tbody>
+                <tbody>{o.order_items.map((it, i) => <tr key={i}><td>{it.name}{it.addons?.length > 0 && <><br /><strong>+ {it.addons.map((x) => x.label).join(', ')}</strong></>}</td><td>{[it.color, it.size].filter(Boolean).join(' / ') || '—'}</td><td>{it.qty}</td><td>☐</td></tr>)}</tbody>
               </table>
               {(o.courier || o.tracking_number) && <p className="small">Courier: {o.courier} · {o.tracking_number}</p>}
               <p className="small slip-thanks">Thank you for shopping with {SHOP_NAME}! Questions? WhatsApp {config.whatsapp ? `+${config.whatsapp}` : 'us'}.</p>

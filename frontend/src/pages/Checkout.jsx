@@ -9,6 +9,7 @@ import { loadRazorpay } from '../lib/razorpay.js'
 import { sessionId } from '../lib/session.js'
 import { track } from '../lib/track.js'
 import { lineLabel, useStoreRules, useTitle } from '../lib/store.js'
+import { addonPayload, MEASURE_FIELDS } from '../lib/addons.js'
 
 const SAVED = 'lpc_checkout_v1'
 const EMPTY = { name: '', phone: '', email: '', line1: '', line2: '', landmark: '', city: '', state: '', pin: '' }
@@ -55,6 +56,7 @@ export default function Checkout() {
   const [giftInput, setGiftInput] = useState('')
   const [giftOpen, setGiftOpen] = useState(false)
   const [optIn, setOptIn] = useState(false)
+  const [measure, setMeasure] = useState({})
   const [quote, setQuote] = useState(null)
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState('')
@@ -74,7 +76,8 @@ export default function Checkout() {
   }, [profile, user])
 
   const payMethod = method || (rules.razorpay_enabled ? 'razorpay' : 'cod')
-  const key = items.map((i) => `${i.variant_id}:${i.qty}`).join(',')
+  const key = items.map((i) => `${i.key}:${i.qty}`).join(',')
+  const cartItems = items.map(({ variant_id, qty, addons }) => ({ variant_id, qty, addons: addonPayload(addons) }))
 
   // Save an unfinished-checkout draft once a valid mobile is entered (so the shop can help if it isn't completed)
   useEffect(() => {
@@ -83,7 +86,7 @@ export default function Checkout() {
     const t = setTimeout(() => {
       api('/api/checkout/draft', { method: 'POST', body: {
         session_id: sid, name: form.name.trim(), phone: form.phone, email: form.email.trim(),
-        items: items.map((i) => ({ variant_id: i.variant_id, qty: i.qty, name: i.name || '', price: i.price || 0 })),
+        items: items.map((i) => ({ variant_id: i.variant_id, qty: i.qty, name: i.name || '', price: i.price || 0, addons: addonPayload(i.addons) || null })),
       } }).catch(() => {})
     }, 1500)
     return () => clearTimeout(t)
@@ -92,7 +95,7 @@ export default function Checkout() {
 
   useEffect(() => {
     if (!items.length) return
-    api('/api/cart/quote', { method: 'POST', body: { items: items.map(({ variant_id, qty }) => ({ variant_id, qty })), coupon_code: coupon || null, payment_method: payMethod, gift_code: gift || null } })
+    api('/api/cart/quote', { method: 'POST', body: { items: cartItems, coupon_code: coupon || null, payment_method: payMethod, gift_code: gift || null } })
       .then(setQuote)
       .catch((e) => setNotice(e.message))
   }, [key, coupon, payMethod, gift])
@@ -136,13 +139,18 @@ export default function Checkout() {
     }
     if (quote?.coupon && !quote.coupon.ok) { setNotice('Please remove the coupon that can’t be applied.'); return }
     if (quote?.gift && !quote.gift.ok) { setNotice('Please remove the gift card that can’t be used.'); return }
+    if (quote?.needs_measurements) {
+      const miss = MEASURE_FIELDS.find(([k, , req]) => req && !String(measure[k] || '').trim())
+      if (miss) { setNotice(`Please enter the ${miss[1].toLowerCase()} for blouse stitching.`); document.getElementById(`m-${miss[0]}`)?.focus(); return }
+    }
     try { localStorage.setItem(SAVED, JSON.stringify(form)) } catch { /* ignore */ }
 
     setBusy(true)
     const body = {
       name: form.name, phone: form.phone, email: form.email || null,
       address: { line1: form.line1, line2: form.line2 || null, landmark: form.landmark || null, city: form.city, state: form.state, pin: form.pin },
-      items: items.map(({ variant_id, qty }) => ({ variant_id, qty })),
+      items: cartItems,
+      measurements: quote?.needs_measurements ? measure : null,
       coupon_code: coupon || null,
       payment_method: payMethod,
       session_id: sessionId(),
@@ -249,6 +257,25 @@ export default function Checkout() {
             </Field>
           </fieldset>
 
+          {quote?.needs_measurements && (
+            <fieldset className="card measure">
+              <legend>Blouse measurements</legend>
+              <p className="small muted">In inches. Measure over a blouse that fits you well. Only our tailor sees these.</p>
+              <div className="measure-grid">
+                {MEASURE_FIELDS.map(([k, label, req]) => (
+                  <label key={k} htmlFor={`m-${k}`}>
+                    <span>{label}{req ? '' : ' (optional)'}</span>
+                    <input id={`m-${k}`} inputMode="decimal" value={measure[k] || ''} required={req}
+                      onChange={(e) => setMeasure({ ...measure, [k]: e.target.value.replace(/[^\d.]/g, '').slice(0, 5) })} />
+                  </label>
+                ))}
+              </div>
+              <label htmlFor="m-note" className="measure-note"><span>Anything else for the tailor? (optional)</span>
+                <textarea id="m-note" rows={2} maxLength={300} placeholder="e.g. high neck, puff sleeves, hooks at the back" value={measure.note || ''} onChange={(e) => setMeasure({ ...measure, note: e.target.value })} />
+              </label>
+            </fieldset>
+          )}
+
           <fieldset className="card">
             <legend>Payment</legend>
             {quote?.full_gift ? <p className="alert alert-ok">🎁 Your gift card covers the whole order — nothing to pay.</p> : <>
@@ -270,8 +297,8 @@ export default function Checkout() {
           <h2 className="h-sm">Order summary</h2>
           <ul className="sum-lines">
             {(quote?.lines || []).map((l) => (
-              <li key={l.variant_id}>
-                <span>{l.name}{lineLabel(l) && <small> · {lineLabel(l)}</small>} × {l.qty}{l.error && <em className="line-error"> — {l.error}</em>}</span>
+              <li key={l.key || l.variant_id}>
+                <span>{l.name}{lineLabel(l) && <small> · {lineLabel(l)}</small>} × {l.qty}{l.addon_lines?.length > 0 && <small className="addon-sum">+ {l.addon_lines.map((x) => x.label).join(', ')}</small>}{l.error && <em className="line-error"> — {l.error}</em>}</span>
                 <span>{l.line_total ? rupees(l.line_total) : ''}</span>
               </li>
             ))}

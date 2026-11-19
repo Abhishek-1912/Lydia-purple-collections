@@ -14,6 +14,20 @@ import WishButton from '../components/WishButton.jsx'
 import Stars from '../components/Stars.jsx'
 import { track } from '../lib/track.js'
 import { swatchBg } from '../lib/shades.js'
+import { ADDON_CATEGORY, addonLabels, addonPayload, addonPrices, addonTotal, NO_ADDONS, SHAPEWEAR_SIZES } from '../lib/addons.js'
+
+function Choice({ name, value, current, onPick, children }) {
+  const on = current === value
+  return <button type="button" className={`addon-chip ${on ? 'active' : ''}`} aria-pressed={on} onClick={() => onPick(value)} data-group={name}>{children}</button>
+}
+
+const Ico = ({ d }) => <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{d}</svg>
+const TRUST = {
+  ship: <Ico d={<><path d="M3 7h11v9H3z" /><path d="M14 10h4l3 3v3h-7" /><circle cx="7" cy="17.5" r="1.6" /><circle cx="17" cy="17.5" r="1.6" /></>} />,
+  pack: <Ico d={<><path d="M12 3 4 7v10l8 4 8-4V7z" /><path d="m4 7 8 4 8-4M12 11v10" /></>} />,
+  cod: <Ico d={<><rect x="3" y="6" width="18" height="12" rx="2" /><circle cx="12" cy="12" r="2.5" /><path d="M6 9v.01M18 15v.01" /></>} />,
+  video: <Ico d={<><rect x="3" y="6" width="13" height="12" rx="2" /><path d="m16 10 5-3v10l-5-3" /></>} />,
+}
 
 export default function Product() {
   const { slug } = useParams()
@@ -27,6 +41,7 @@ export default function Product() {
   const [qty, setQty] = useState(1)
   const [added, setAdded] = useState(false)
   const [msg, setMsg] = useState('')
+  const [addons, setAddons] = useState(NO_ADDONS)
 
   useEffect(() => {
     setStatus('loading')
@@ -38,6 +53,7 @@ export default function Product() {
         setColor(firstInStock?.color || '')
         setSize(d.sizes.length ? (firstInStock?.size || '') : '')
         setQty(1)
+        setAddons(NO_ADDONS)
         setStatus('ok')
       })
       .catch((e) => setStatus(e.status === 404 ? 'missing' : 'error'))
@@ -78,9 +94,15 @@ export default function Product() {
   const sizeStock = (s) => p.variants.find((v) => v.color === color && v.size === s)?.stock ?? 0
   const colorStock = (c) => p.variants.filter((v) => v.color === c).reduce((n, v) => n + v.stock, 0)
 
+  const prices = addonPrices(rules)
+  const offerAddons = p.category?.slug === ADDON_CATEGORY && rules.razorpay_enabled && (prices.fall || prices.regular || prices.designer || prices.shapewear)
+  const extra = offerAddons ? addonTotal(addons, prices) : 0
+  const pick = (k) => (v) => setAddons({ ...addons, [k]: v })
+
   function addToCart() {
     if (!variant || stock < qty) { setMsg(stock ? `Only ${stock} left.` : 'This option is sold out.'); return false }
-    add({ variant_id: variant.id, name: p.name, slug: p.slug, color: variant.color, size: variant.size, price: p.price, image: gallery[0]?.url || null }, qty)
+    const chosen = offerAddons ? addonPayload(addons) : undefined
+    add({ variant_id: variant.id, addons: chosen, name: p.name, slug: p.slug, color: variant.color, size: variant.size, price: p.price + extra, image: gallery[0]?.url || null }, qty)
     track('cart', p.id)
     setMsg('')
     return true
@@ -110,7 +132,7 @@ export default function Product() {
             </div>
             <div className="price-row big">
               <span className="price">{rupees(p.price)}</span>
-              {p.mrp > p.price && <><s className="mrp">{rupees(p.mrp)}</s><span className="save">Save {p.discount_pct}%</span></>}
+              {p.mrp > p.price && <><s className="mrp">{rupees(p.mrp)}</s><span className="save-pill">Save {rupees(p.mrp - p.price)} ({p.discount_pct}% off)</span></>}
             </div>
             <p className="small muted">Inclusive of all taxes</p>
 
@@ -137,6 +159,42 @@ export default function Product() {
                   ))}
                 </div>
               </fieldset>
+            )}
+
+            {offerAddons && !soldOut && (
+              <div className="addons">
+                <p className="addons-head">Make it ready to wear <span>Online payment only</span></p>
+                {prices.fall > 0 && (
+                  <div className="addon-row" role="group" aria-label="Fall and edging">
+                    <span className="addon-name">Fall &amp; edging</span>
+                    <div className="addon-chips">
+                      <Choice name="fall" value={false} current={addons.fall} onPick={pick('fall')}>No</Choice>
+                      <Choice name="fall" value={true} current={addons.fall} onPick={pick('fall')}>Yes <small>+{rupees(prices.fall)}</small></Choice>
+                    </div>
+                  </div>
+                )}
+                {(prices.regular > 0 || prices.designer > 0) && (
+                  <div className="addon-row" role="group" aria-label="Blouse stitching">
+                    <span className="addon-name">Blouse stitching</span>
+                    <div className="addon-chips">
+                      <Choice name="blouse" value={null} current={addons.blouse} onPick={pick('blouse')}>No</Choice>
+                      {prices.regular > 0 && <Choice name="blouse" value="regular" current={addons.blouse} onPick={pick('blouse')}>Regular <small>+{rupees(prices.regular)}</small></Choice>}
+                      {prices.designer > 0 && <Choice name="blouse" value="designer" current={addons.blouse} onPick={pick('blouse')}>Designer <small>+{rupees(prices.designer)}</small></Choice>}
+                    </div>
+                    {addons.blouse && <p className="addon-note">We'll ask for your measurements at checkout.</p>}
+                  </div>
+                )}
+                {prices.shapewear > 0 && (
+                  <div className="addon-row" role="group" aria-label="Saree shapewear">
+                    <span className="addon-name">Saree shapewear <small>+{rupees(prices.shapewear)}</small></span>
+                    <div className="addon-chips">
+                      <Choice name="shapewear" value={null} current={addons.shapewear} onPick={pick('shapewear')}>No</Choice>
+                      {SHAPEWEAR_SIZES.map((z) => <Choice key={z} name="shapewear" value={z} current={addons.shapewear} onPick={pick('shapewear')}>{z}</Choice>)}
+                    </div>
+                  </div>
+                )}
+                {extra > 0 && <p className="addon-total" aria-live="polite">{addonLabels(addons).join(' + ')}: <strong>+{rupees(extra)}</strong> · You pay <strong>{rupees(p.price + extra)}</strong> each</p>}
+              </div>
             )}
 
             {soldOut ? (
@@ -167,23 +225,37 @@ export default function Product() {
                   {rules.call_enabled
                     ? <Link className="link-gold" to={`/video-call?product=${p.slug}`}>📹 Book a video call</Link>
                     : <a className="link-gold" href={whatsappLink(`Hi! Can I see a live video of "${p.name}"${color ? ` in ${color}` : ''}?\n${window.location.href}`)} target="_blank" rel="noreferrer">📹 Ask for a live video call</a>}
-                  {rules.call_enabled && <a className="link-gold" href={whatsappLink(`Hi! Can I see a live video of "${p.name}"${color ? ` in ${color}` : ''}?\n${window.location.href}`)} target="_blank" rel="noreferrer">💬 Or ask on WhatsApp</a>}
+                  {!!rules.call_enabled && <a className="link-gold" href={whatsappLink(`Hi! Can I see a live video of "${p.name}"${color ? ` in ${color}` : ''}?\n${window.location.href}`)} target="_blank" rel="noreferrer">💬 Or ask on WhatsApp</a>}
                 </div>
-                <DeliveryCheck codAvailable={p.price + rules.cod_fee <= rules.cod_max_order} />
+                <DeliveryCheck codAvailable={!extra && p.price + rules.cod_fee <= rules.cod_max_order} />
                 {msg && <p className="alert alert-error" role="alert">{msg}</p>}
                 {added && <p className="small" role="status"><Link to="/cart" className="link-gold">View cart →</Link></p>}
               </>
             )}
 
-            <div className="pdp-details">
-              {p.description && <p>{p.description}</p>}
-              <h2 className="h-sm">Product details</h2>
-              <dl>
-                {specs.map(([label, value]) => <div key={label} className="spec"><dt>{label}</dt><dd>{value}</dd></div>)}
-                <div className="spec"><dt>Shipping</dt>
-                <dd>Free shipping above {rupees(rules.free_shipping_above)}, else {rupees(rules.shipping_fee)}. Ships across India — check your delivery date above. Cash on Delivery available.</dd></div>
-              </dl>
-              <p className="small muted">Colours may vary slightly on screen. Ask us on WhatsApp for a live video.</p>
+            <ul className="trust-row">
+              <li>{TRUST.ship}<span><strong>Free shipping</strong> above {rupees(rules.free_shipping_above)}</span></li>
+              <li>{TRUST.pack}<span><strong>{rules.dispatch_days > 1 ? `Ships in ${rules.dispatch_days} days` : rules.dispatch_days === 1 ? 'Ships in 1 day' : 'Ships fast'}</strong> across India</span></li>
+              <li>{TRUST.cod}<span><strong>Cash on Delivery</strong> available</span></li>
+              <li>{TRUST.video}<span><strong>Live video</strong> before you buy</span></li>
+            </ul>
+
+            <div className="pdp-acc">
+              {p.description && <details open><summary>Description</summary><p>{p.description}</p></details>}
+              {(d.composition || p.fabric || d.weave || d.origin || p.silk_mark) && (
+                <details><summary>Fabric &amp; craft</summary>
+                  <p>{[d.composition || p.fabric, d.weave && `${d.weave} weave`, d.origin && `from ${d.origin}`].filter(Boolean).join(', ')}.{p.silk_mark && ' Silk Mark certified pure silk.'}</p>
+                </details>
+              )}
+              {d.occasion && <details><summary>Occasion</summary><p>{d.occasion}</p></details>}
+              {p.care && <details><summary>Care</summary><p>{p.care}</p></details>}
+              <details><summary>Product details</summary>
+                <dl>{specs.filter(([l]) => l !== 'Care').map(([label, value]) => <div key={label} className="spec"><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
+                <p className="small muted">Colours may vary slightly on screen. Ask us on WhatsApp for a live video.</p>
+              </details>
+              <details><summary>Shipping &amp; payment</summary>
+                <p>Free shipping above {rupees(rules.free_shipping_above)}, otherwise {rupees(rules.shipping_fee)}. Ships across India — check your delivery date above. Pay online by UPI, card or net banking, or Cash on Delivery (+{rupees(rules.cod_fee)}).{offerAddons ? ' Orders with fall & edging, blouse stitching or shapewear are online payment only.' : ''}</p>
+              </details>
             </div>
           </div>
         </div>

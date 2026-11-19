@@ -6,6 +6,7 @@ import { WhatsAppIcon } from '../components/Icons.jsx'
 import { useCart } from '../context/CartContext.jsx'
 import { api } from '../lib/api.js'
 import { rupees } from '../lib/config.js'
+import { addonLabels, addonPayload, lineKey } from '../lib/addons.js'
 import { cartWhatsApp, lineLabel, useStoreRules, useTitle } from '../lib/store.js'
 
 export default function Cart() {
@@ -20,7 +21,7 @@ export default function Cart() {
     if (!id || restoreDone.current) return
     restoreDone.current = true // run once, even if React starts the page twice
     api(`/api/checkout/draft/${id}/items`).then((lines) => {
-      lines.forEach((l) => { if (!items.some((i) => i.variant_id === l.variant_id)) add({ variant_id: l.variant_id }, l.qty) })
+      lines.forEach((l) => { if (!items.some((i) => i.key === lineKey(l.variant_id, l.addons))) add({ variant_id: l.variant_id, addons: l.addons }, l.qty) })
       setRestored('Your saved cart is back. Prices and stock are checked again below.')
     }).catch((e) => setRestored(e.message)).finally(() => setParams({}, { replace: true }))
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -29,11 +30,11 @@ export default function Cart() {
   const [quote, setQuote] = useState(null)
   const [error, setError] = useState('')
 
-  const key = items.map((i) => `${i.variant_id}:${i.qty}`).join(',')
+  const key = items.map((i) => `${i.key}:${i.qty}`).join(',')
   useEffect(() => {
     if (!items.length) { setQuote(null); return }
     let alive = true
-    api('/api/cart/quote', { method: 'POST', body: { items: items.map(({ variant_id, qty }) => ({ variant_id, qty })) } })
+    api('/api/cart/quote', { method: 'POST', body: { items: items.map(({ variant_id, qty, addons }) => ({ variant_id, qty, addons: addonPayload(addons) })) } })
       .then((q) => { if (alive) { setQuote(q); setError('') } })
       .catch((e) => alive && setError(e.message))
     return () => { alive = false }
@@ -50,11 +51,11 @@ export default function Cart() {
     )
   }
 
-  const lineFor = (vid) => quote?.lines.find((l) => l.variant_id === vid)
+  const lineFor = (k) => quote?.lines.find((l) => l.key === k)
   const subtotal = quote?.subtotal ?? items.reduce((n, i) => n + i.price * i.qty, 0)
   const remaining = quote?.free_shipping_remaining ?? Math.max(0, rules.free_shipping_above - subtotal)
   const pct = Math.min(100, Math.round(((rules.free_shipping_above - remaining) / rules.free_shipping_above) * 100))
-  const waLines = items.map((i) => { const l = lineFor(i.variant_id); return { ...i, name: l?.name || i.name, color: l?.color ?? i.color, size: l?.size ?? i.size, price: l?.price ?? i.price } })
+  const waLines = items.map((i) => { const l = lineFor(i.key); return { ...i, name: l?.name || i.name, color: l?.color ?? i.color, size: l?.size ?? i.size, price: l?.unit_price ?? i.price, extras: addonLabels(i.addons) } })
 
   return (
     <section className="container section">
@@ -73,27 +74,29 @@ export default function Cart() {
       <div className="cart-layout">
         <ul className="cart-lines">
           {items.map((i) => {
-            const l = lineFor(i.variant_id)
+            const l = lineFor(i.key)
+            const extras = addonLabels(i.addons)
             return (
-              <li key={i.variant_id} className="cart-line">
+              <li key={i.key} className="cart-line">
                 <Link to={`/products/${l?.slug || i.slug || ''}`} className="cart-thumb" tabIndex={-1} aria-hidden="true">
                   <ProductImage src={l?.image || i.image} alt="" />
                 </Link>
                 <div className="cart-info">
                   <Link to={`/products/${l?.slug || i.slug || ''}`} className="cart-name">{l?.name || i.name}</Link>
                   {lineLabel(l || i) && <p className="small muted">{lineLabel(l || i)}</p>}
-                  <p className="price">{rupees(l?.price ?? i.price)}</p>
+                  {extras.length > 0 && <ul className="addon-list small">{extras.map((x) => <li key={x}>+ {x}</li>)}</ul>}
+                  <p className="price">{rupees(l?.unit_price ?? i.price)}</p>
                   {l?.error && <p className="line-error" role="alert">{l.error}</p>}
                   <div className="cart-controls">
                     <div className="qty">
-                      <button type="button" onClick={() => setQty(i.variant_id, i.qty - 1)} disabled={i.qty <= 1} aria-label={`Decrease quantity of ${i.name}`}>−</button>
+                      <button type="button" onClick={() => setQty(i.key, i.qty - 1)} disabled={i.qty <= 1} aria-label={`Decrease quantity of ${i.name}`}>−</button>
                       <input value={i.qty} readOnly aria-label={`Quantity of ${i.name}`} />
-                      <button type="button" onClick={() => setQty(i.variant_id, i.qty + 1)} disabled={i.qty >= 10} aria-label={`Increase quantity of ${i.name}`}>+</button>
+                      <button type="button" onClick={() => setQty(i.key, i.qty + 1)} disabled={i.qty >= 10} aria-label={`Increase quantity of ${i.name}`}>+</button>
                     </div>
-                    <button className="link-btn" onClick={() => remove(i.variant_id)}>Remove</button>
+                    <button className="link-btn" onClick={() => remove(i.key)}>Remove</button>
                   </div>
                 </div>
-                <p className="cart-line-total">{rupees((l?.price ?? i.price) * i.qty)}</p>
+                <p className="cart-line-total">{rupees(l?.line_total ?? i.price * i.qty)}</p>
               </li>
             )
           })}

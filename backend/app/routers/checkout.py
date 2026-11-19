@@ -28,7 +28,7 @@ router = APIRouter(prefix="/api", tags=["checkout"])
 PUBLIC_ORDER = (
     "id,order_no,customer_name,phone,email,address,subtotal,shipping_fee,cod_fee,discount,total,"
     "coupon_code,payment_method,payment_status,status,courier,tracking_number,created_at,razorpay_order_id,gift_amount,gift_code,"
-    "order_items(name,color,size,image_url,price,qty,product_id)"
+    "order_items(name,color,size,image_url,price,qty,product_id,addons)"
 )
 
 
@@ -84,6 +84,13 @@ def create_order(body: OrderIn, request: Request, background: BackgroundTasks, u
             raise HTTPException(400, {"message": refusal, "code": "COD_REFUSED"})
     if method == "cod" and not q["cod_allowed"]:
         raise HTTPException(400, {"message": q["cod_message"], "code": "COD_LIMIT"})
+    measurements = None
+    if q.get("needs_measurements"):
+        from .. import addons
+        problem = addons.measurements_problem(body.measurements)
+        if problem:
+            raise HTTPException(400, {"message": problem, "code": "MEASUREMENTS"})
+        measurements = addons.clean_measurements(body.measurements)
 
     order = {
         "user_id": user["id"] if user else None,
@@ -97,9 +104,11 @@ def create_order(body: OrderIn, request: Request, background: BackgroundTasks, u
         "payment_method": method,
         "gift_code": q["gift"]["code"] if q.get("gift") else None,
         "gift_amount": q.get("gift_amount", 0),
+        "measurements": measurements,
     }
-    items = [{k: l[k] for k in ("variant_id", "product_id", "name", "color", "size", "price", "qty")}
-             | {"image_url": l["image"]} for l in q["lines"]]
+    # price = what one unit costs including its add-ons; addons keeps the breakdown for invoices and slips
+    items = [{k: l[k] for k in ("variant_id", "product_id", "name", "color", "size", "qty")}
+             | {"image_url": l["image"], "price": l["unit_price"], "addons": l["addon_lines"]} for l in q["lines"]]
 
     try:
         placed = get_db().rpc("place_order", {"p_order": order, "p_items": items}).execute().data

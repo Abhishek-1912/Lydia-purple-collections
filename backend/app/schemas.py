@@ -3,9 +3,16 @@ from typing import Literal
 from pydantic import BaseModel, Field, field_validator
 
 
+class Addons(BaseModel):
+    fall: bool = False
+    blouse: Literal["regular", "designer"] | None = None
+    shapewear: Literal["S", "M", "L", "XL", "XXL"] | None = None
+
+
 class CartItem(BaseModel):
     variant_id: str
     qty: int = Field(ge=1, le=10)
+    addons: Addons | None = None
 
 
 class QuoteIn(BaseModel):
@@ -49,6 +56,7 @@ class OrderIn(BaseModel):
     items: list[CartItem] = Field(min_length=1, max_length=50)
     coupon_code: str | None = Field(default=None, max_length=40)
     payment_method: Literal["razorpay", "cod"]
+    measurements: dict[str, str | float | int | None] | None = Field(default=None, max_length=12)
     session_id: str | None = Field(default=None, max_length=64)   # links the abandoned-checkout draft
     gift_code: str | None = Field(default=None, max_length=40)
     whatsapp_opt_in: bool = False                                 # "Send me new arrivals on WhatsApp"

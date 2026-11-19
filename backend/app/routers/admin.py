@@ -319,8 +319,8 @@ async def import_products(file: UploadFile = File(...), dry_run: bool = Form(Tru
 # ───────────── orders ─────────────
 ORDER_FIELDS = ("id,order_no,user_id,customer_name,phone,email,address,subtotal,shipping_fee,cod_fee,discount,total,"
                 "coupon_code,payment_method,payment_status,status,razorpay_order_id,razorpay_payment_id,courier,"
-                "tracking_number,needs_review,stock_released,paid_at,shipped_at,delivered_at,created_at,gift_code,gift_amount,"
-                "order_items(name,color,size,image_url,price,qty)")
+                "tracking_number,needs_review,stock_released,paid_at,shipped_at,delivered_at,created_at,gift_code,gift_amount,measurements,"
+                "order_items(name,color,size,image_url,price,qty,addons)")
 
 
 def _with_blocked(orders: list[dict]) -> list[dict]:

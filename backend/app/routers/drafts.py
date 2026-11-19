@@ -19,6 +19,7 @@ class DraftItem(BaseModel):
     qty: int = Field(ge=1, le=10)
     name: str = Field(default="", max_length=200)
     price: int = Field(default=0, ge=0)
+    addons: dict | None = None
 
 
 class DraftIn(BaseModel):
@@ -72,7 +73,9 @@ def draft_items(draft_id: str):
         rows = []
     if not rows:
         raise HTTPException(404, "This cart link has expired.")
-    return [{"variant_id": i["variant_id"], "qty": i["qty"]} for i in rows[0]["items"]]
+    from ..addons import clean
+    return [{"variant_id": i["variant_id"], "qty": i["qty"]} | ({"addons": clean(i["addons"])} if i.get("addons") else {})
+            for i in rows[0]["items"]]
 
 
 # ───────────── admin ─────────────

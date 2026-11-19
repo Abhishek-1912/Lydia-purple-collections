@@ -25,6 +25,6 @@ export function productWhatsApp(product, variant) {
 }
 
 export function cartWhatsApp(lines, subtotal) {
-  const body = lines.map((l, i) => `${i + 1}. ${l.name}${lineLabel(l) ? ` (${lineLabel(l)})` : ''} × ${l.qty} = ${rupees(l.price * l.qty)}`).join('\n')
+  const body = lines.map((l, i) => `${i + 1}. ${l.name}${lineLabel(l) ? ` (${lineLabel(l)})` : ''}${l.extras?.length ? ` + ${l.extras.join(', ')}` : ''} × ${l.qty} = ${rupees(l.price * l.qty)}`).join('\n')
   return whatsappLink(`Hi! I'd like to order these:\n${body}\nSubtotal: ${rupees(subtotal)}`)
 }

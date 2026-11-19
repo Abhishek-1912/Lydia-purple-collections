@@ -115,47 +115,69 @@ def get_gift(code: str) -> dict | None:
 
 
 def quote(items: list[dict], coupon_code: str | None, payment_method: str | None, gift_code: str | None = None) -> dict:
-    """Re-price a cart from the database. items: [{variant_id, qty}]."""
-    merged: dict[str, int] = {}
+    """Re-price a cart from the database. items: [{variant_id, qty, addons?}].
+    The same saree with different add-ons is a separate line; stock is checked per variant across lines."""
+    from . import addons as ad
+    from .store import current
+    prices = current()
+    merged: dict[tuple[str, str], dict] = {}
     for it in items:
-        merged[it["variant_id"]] = merged.get(it["variant_id"], 0) + int(it["qty"])
+        a = ad.clean(it.get("addons"))
+        k = (it["variant_id"], ad.key(a))
+        if k in merged:
+            merged[k]["qty"] += int(it["qty"])
+        else:
+            merged[k] = {"qty": int(it["qty"]), "addons": a}
+    per_variant: dict[str, int] = {}
+    for (vid, _), m in merged.items():
+        m["qty"] = max(1, min(m["qty"], MAX_QTY))
+        per_variant[vid] = per_variant.get(vid, 0) + m["qty"]
 
     rows = []
     if merged:
         rows = (
             get_db().table("product_variants")
             .select("id,color,size,stock,products(id,slug,name,price,mrp,is_active,"
-                    "categories(is_active),product_images(url,color,sort_order))")
-            .in_("id", list(merged))
+                    "categories(slug,is_active),product_images(url,color,sort_order))")
+            .in_("id", list(per_variant))
             .execute().data
         )
     by_id = {r["id"]: r for r in rows}
 
-    lines, subtotal, ok = [], 0, True
-    for vid, qty in merged.items():
-        qty = max(1, min(qty, MAX_QTY))
+    lines, subtotal, ok, prepaid_only = [], 0, True, False
+    for (vid, akey), m in merged.items():
+        qty, chosen = m["qty"], m["addons"]
         r = by_id.get(vid)
         p = r and r.get("products")
         if not p or not visible(p):
-            lines.append({"variant_id": vid, "qty": qty, "available": False,
+            lines.append({"variant_id": vid, "key": f"{vid}:{akey}", "addons": chosen, "addon_lines": [], "qty": qty, "available": False,
                           "error": "This item is no longer available. Please remove it."})
             ok = False
             continue
         imgs = sorted(p.get("product_images") or [], key=lambda i: (i["color"] not in (None, r["color"]), i["sort_order"]))
+        extras, addon_err = ad.lines(chosen, prices) if akey else ([], None)
+        if akey and ((p.get("categories") or {}).get("slug") != ad.CATEGORY):
+            extras, addon_err = [], "Add-ons aren't available for this item. Please remove it and add it again."
+        addon_amount = sum(e["amount"] for e in extras)
         line = {
-            "variant_id": vid, "product_id": p["id"], "slug": p["slug"], "name": p["name"],
+            "variant_id": vid, "key": f"{vid}:{akey}", "product_id": p["id"], "slug": p["slug"], "name": p["name"],
             "color": r["color"], "size": r["size"], "image": imgs[0]["url"] if imgs else None,
             "price": p["price"], "mrp": p["mrp"], "qty": qty, "stock": r["stock"],
-            "line_total": p["price"] * qty, "available": True, "error": None,
+            "addons": chosen, "addon_lines": extras, "addon_amount": addon_amount, "unit_price": p["price"] + addon_amount,
+            "line_total": (p["price"] + addon_amount) * qty, "available": True, "error": None,
         }
-        if r["stock"] <= 0:
+        if addon_err:
+            line.update(available=False, error=addon_err)
+            ok = False
+        elif r["stock"] <= 0:
             line.update(available=False, error="Just sold out. Please remove it.")
             ok = False
-        elif r["stock"] < qty:
+        elif r["stock"] < per_variant[vid]:
             line.update(available=False, error=f"Only {r['stock']} left. Please lower the quantity.")
             ok = False
         else:
             subtotal += line["line_total"]
+            prepaid_only = prepaid_only or bool(extras)
         lines.append(line)
 
     discount, coupon = 0, None
@@ -177,4 +199,8 @@ def quote(items: list[dict], coupon_code: str | None, payment_method: str | None
             gift = {"code": code, "ok": True, "balance": card["balance"],
                     "message": f"₹{money['gift_amount']:,} paid by gift card" + (" — nothing left to pay." if money["full_gift"] else ".")}
     money.setdefault("due", money["total"] - money["gift_amount"])
-    return {"lines": lines, "ok": ok and bool(lines), "coupon": coupon, "gift": gift, **money}
+    if prepaid_only:
+        money["cod_allowed"] = False
+        money["cod_message"] = "Fall & edging, blouse stitching and shapewear are for online payment only."
+    return {"lines": lines, "ok": ok and bool(lines), "coupon": coupon, "gift": gift, "prepaid_only": prepaid_only,
+            "needs_measurements": any(l.get("addons", {}).get("blouse") for l in lines if l["available"]), **money}

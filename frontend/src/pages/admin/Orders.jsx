@@ -3,6 +3,9 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { useAuth, useAuthedApi } from '../../context/AuthContext.jsx'
 import { config, rupees, whatsappLink } from '../../lib/config.js'
 import { orderNo, PAYMENT_LABEL, STATUS_LABEL } from '../../lib/india.js'
+import { MEASURE_FIELDS } from '../../lib/addons.js'
+
+const MEASURE_LABEL = { ...Object.fromEntries(MEASURE_FIELDS.map(([k, l]) => [k, l])), note: 'Note' }
 
 const FILTERS = [['', 'All'], ['confirmed', 'To pack'], ['packed', 'To ship'], ['shipped', 'Shipped'], ['delivered', 'Delivered'], ['pending_payment', 'Awaiting payment'], ['cancelled', 'Cancelled']]
 const COURIERS = ['India Post', 'DTDC', 'Delhivery', 'Blue Dart', 'Professional Couriers', 'ST Courier', 'Xpressbees', 'Ekart']
@@ -88,8 +91,14 @@ function OrderRow({ o, onChange, onPhoneBlocked, integ = {} }) {
             <div>
               <h3>Items</h3>
               <ul className="plain">
-                {o.order_items.map((it, i) => <li key={i}>{it.name}{(it.color || it.size) && ` (${[it.color, it.size].filter(Boolean).join(' / ')})`} × {it.qty} — {rupees(it.price * it.qty)}</li>)}
+                {o.order_items.map((it, i) => <li key={i}>{it.name}{(it.color || it.size) && ` (${[it.color, it.size].filter(Boolean).join(' / ')})`} × {it.qty} — {rupees(it.price * it.qty)}{it.addons?.length > 0 && <><br /><small>+ {it.addons.map((x) => `${x.label} ${rupees(x.amount)}`).join(', ')}</small></>}</li>)}
               </ul>
+              {o.measurements && (
+                <details className="measure-view no-print">
+                  <summary>✂️ Blouse measurements (inches)</summary>
+                  <dl>{Object.entries(o.measurements).map(([k, v]) => <div key={k}><dt>{MEASURE_LABEL[k] || k}</dt><dd>{v}</dd></div>)}</dl>
+                </details>
+              )}
               <p className="small">Subtotal {rupees(o.subtotal)}{o.discount ? ` · Discount −${rupees(o.discount)} (${o.coupon_code})` : ''} · Shipping {rupees(o.shipping_fee)}{o.cod_fee ? ` · COD ${rupees(o.cod_fee)}` : ''}</p>
               {(o.courier_status || o.refund_amount) && <p className="small">{o.courier_status && <>🚚 {o.courier_status}</>}{o.refund_amount ? ` · Refunded ₹${o.refund_amount}` : ''}</p>}
               {o.gift_amount > 0 && <p className="small">🎁 Gift card {o.gift_code}: −{rupees(o.gift_amount)}{o.payment_method === 'cod' && <> · <strong>collect {rupees(o.total - o.gift_amount)}</strong></>}</p>}

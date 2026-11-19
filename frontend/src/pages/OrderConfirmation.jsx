@@ -47,7 +47,7 @@ export default function OrderConfirmation() {
         {o.tracking_number && <div className="sum-row"><span>Tracking</span><span>{o.courier} · {o.tracking_number}</span></div>}
         <ul className="sum-lines">
           {o.order_items.map((it, i) => (
-            <li key={i}><span>{it.name}{lineLabel(it) && <small> · {lineLabel(it)}</small>} × {it.qty}</span><span>{rupees(it.price * it.qty)}</span></li>
+            <li key={i}><span>{it.name}{lineLabel(it) && <small> · {lineLabel(it)}</small>} × {it.qty}{it.addons?.length > 0 && <small className="addon-sum">+ {it.addons.map((x) => x.label).join(', ')}</small>}</span><span>{rupees(it.price * it.qty)}</span></li>
           ))}
         </ul>
         <div className="sum-row"><span>Subtotal</span><span>{rupees(o.subtotal)}</span></div>

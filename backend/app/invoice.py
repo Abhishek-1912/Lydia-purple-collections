@@ -58,9 +58,13 @@ def build(order: dict, cfg: dict, number: int | None, issued: datetime) -> dict:
     same = bool(cfg.get("shop_state")) and buyer_state.strip().lower() == str(cfg.get("shop_state")).strip().lower()
     lines = []
     for it in order["order_items"]:
-        g = it["price"] * it["qty"]
+        extras = it.get("addons") or []          # saree add-ons: shown as their own lines
+        base = it["price"] - sum(int(e["amount"]) for e in extras)
         lines.append({"description": it["name"] + (f" ({' / '.join(x for x in (it.get('color'), it.get('size')) if x)})" if (it.get("color") or it.get("size")) else ""),
-                      "hsn": cfg.get("hsn") or "", "qty": it["qty"], "rate": it["price"], **tax_split(g, rate, same)})
+                      "hsn": cfg.get("hsn") or "", "qty": it["qty"], "rate": base, **tax_split(base * it["qty"], rate, same)})
+        for e in extras:
+            amt = int(e["amount"])
+            lines.append({"description": e["label"], "hsn": "", "qty": it["qty"], "rate": amt, **tax_split(amt * it["qty"], rate, same)})
     if order.get("discount"):
         lines.append({"description": f"Discount{' (' + order['coupon_code'] + ')' if order.get('coupon_code') else ''}",
                       "hsn": "", "qty": 1, "rate": -order["discount"], **tax_split(-order["discount"], rate, same)})

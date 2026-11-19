@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { lineKey } from '../lib/addons.js'
 
 const KEY = 'lpc_cart_v1'
 const CartContext = createContext(null)
@@ -6,13 +7,14 @@ const CartContext = createContext(null)
 function load() {
   try {
     const v = JSON.parse(localStorage.getItem(KEY))
-    return Array.isArray(v) ? v : []
+    return Array.isArray(v) ? v.map((i) => ({ ...i, key: i.key || lineKey(i.variant_id, i.addons) })) : []
   } catch {
     return []
   }
 }
 
-// Each line: { variant_id, qty, name, slug, color, size, price, image }  (display snapshot; server re-prices)
+// Each line: { key, variant_id, addons?, qty, name, slug, color, size, price, image }  (display snapshot; server re-prices)
+// The same saree with different add-ons is a separate line, so lines are addressed by `key`.
 export function CartProvider({ children }) {
   const [items, setItems] = useState(load)
 
@@ -24,17 +26,18 @@ export function CartProvider({ children }) {
     items,
     count: items.reduce((n, i) => n + i.qty, 0),
     add(line, qty = 1) {
+      const key = lineKey(line.variant_id, line.addons)
       setItems((prev) => {
-        const found = prev.find((i) => i.variant_id === line.variant_id)
-        if (found) return prev.map((i) => i.variant_id === line.variant_id ? { ...i, qty: Math.min(10, i.qty + qty) } : i)
-        return [...prev, { ...line, qty: Math.min(10, qty) }]
+        const found = prev.find((i) => i.key === key)
+        if (found) return prev.map((i) => i.key === key ? { ...i, qty: Math.min(10, i.qty + qty) } : i)
+        return [...prev, { ...line, key, qty: Math.min(10, qty) }]
       })
     },
-    setQty(variant_id, qty) {
-      setItems((prev) => prev.map((i) => i.variant_id === variant_id ? { ...i, qty: Math.max(1, Math.min(10, qty)) } : i))
+    setQty(key, qty) {
+      setItems((prev) => prev.map((i) => i.key === key ? { ...i, qty: Math.max(1, Math.min(10, qty)) } : i))
     },
-    remove(variant_id) {
-      setItems((prev) => prev.filter((i) => i.variant_id !== variant_id))
+    remove(key) {
+      setItems((prev) => prev.filter((i) => i.key !== key))
     },
     clear() { setItems([]) },
   }), [items])

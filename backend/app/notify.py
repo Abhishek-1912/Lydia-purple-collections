@@ -13,7 +13,7 @@ from . import store
 
 log = logging.getLogger("notify")
 ORDER_FIELDS = ("id,order_no,customer_name,phone,email,address,subtotal,shipping_fee,cod_fee,discount,total,"
-                "coupon_code,payment_method,payment_status,courier,tracking_number,gift_amount,order_items(name,color,size,price,qty)")
+                "coupon_code,payment_method,payment_status,courier,tracking_number,gift_amount,order_items(name,color,size,price,qty,addons)")
 
 
 # ───────────── channels ─────────────
@@ -74,7 +74,8 @@ def _wrap(title: str, inner: str) -> str:
 def _order_table(o: dict) -> str:
     e = html.escape
     rows = "".join(
-        f"<tr><td style='padding:6px 0'>{e(i['name'])}{(' (' + e(' / '.join(x for x in (i['color'], i['size']) if x)) + ')') if (i['color'] or i['size']) else ''} × {i['qty']}</td>"
+        f"<tr><td style='padding:6px 0'>{e(i['name'])}{(' (' + e(' / '.join(x for x in (i['color'], i['size']) if x)) + ')') if (i['color'] or i['size']) else ''} × {i['qty']}"
+        f"{('<br><small>+ ' + e(', '.join(x['label'] for x in i.get('addons') or [])) + '</small>') if i.get('addons') else ''}</td>"
         f"<td style='text-align:right'>{inr(i['price'] * i['qty'])}</td></tr>" for i in o["order_items"])
     extra = ""
     if o["discount"]:
